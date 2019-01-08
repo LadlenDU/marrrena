@@ -2,7 +2,23 @@
 
 header('Content-Type: text/html; charset=utf-8');
 
-//$resultString = '';
+$pid = file_get_contents('morena.process.pid');
+
+$parsingWasBroken = false;
+
+if ($pid) {
+    if (file_exists("/proc/$pid")) {
+        if ($cmdLine = file_get_contents("/proc/$pid/cmdline")) {
+            if (strpos($cmdLine, 'php') === false) {
+                // Видимо это все-таки не наш процесс.
+                file_put_contents('morena.process.pid', '');
+                $parsingWasBroken = true;
+            } else {
+                
+            }
+        }
+    }
+}
 
 try {
     require_once('configCommon.php');
@@ -12,25 +28,6 @@ try {
     require_once('QueryCreator.class.php');
 
     require_once('functions.php');
-
-    if (!empty($_POST['cid'])) {
-
-        //require_once('parse.morena.ru.php');
-
-        /*if ($_POST['site'] == 'iclim.ru') {
-            require_once('parse.iclim.ru.php');
-        } elseif ($_POST['site'] == 'rusklimat.ru') {
-            require_once('parse.rusklimat.ru.php');
-        } else {
-            die('wrong site');
-        }*/
-
-        //file_put_contents('morena.process.pid', getmypid());
-        //$morena = new Morena();
-        //$morena->parse();
-        //echo 'Парсинг начат в фоновом режиме. ID процесса: ' . getmypid() . '<br>';
-        //exit;
-    }
 
     $dr = new DataReader();
     $dr->login();

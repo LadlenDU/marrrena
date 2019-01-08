@@ -2,7 +2,7 @@
 
 header('Content-Type: text/html; charset=utf-8');
 
-//$resultString = '';
+$resultString = '';
 
 try {
     require_once('configCommon.php');
@@ -15,21 +15,14 @@ try {
 
     if (!empty($_POST['cid'])) {
 
-        //require_once('parse.morena.ru.php');
-
-        /*if ($_POST['site'] == 'iclim.ru') {
+        if ($_POST['site'] == 'iclim.ru') {
             require_once('parse.iclim.ru.php');
         } elseif ($_POST['site'] == 'rusklimat.ru') {
             require_once('parse.rusklimat.ru.php');
         } else {
             die('wrong site');
-        }*/
+        }
 
-        //file_put_contents('morena.process.pid', getmypid());
-        //$morena = new Morena();
-        //$morena->parse();
-        //echo 'Парсинг начат в фоновом режиме. ID процесса: ' . getmypid() . '<br>';
-        //exit;
     }
 
     $dr = new DataReader();
@@ -70,7 +63,7 @@ try {
 <body>
 
 <?php
-/*if ($resultString) {
+if ($resultString) {
     echo $resultString;
 } else {
     if (!empty($_POST['cid'])) {
@@ -79,17 +72,20 @@ try {
         echo '</pre><br>';
     }
 }
-*/?>
+?>
 
-<div id="start-panel-wrapper">
 <div id="categories" style="width:550px;float:left;font-size: 13px;overflow-x: auto;margin-bottom: 5em;">
     Размещение:<br>
 
     <div id="positions_cid"></div>
 </div>
 <div style="width:500px;float:left">
-    <form method="post" id="parse_form">
-        <label>Сайт: https://morena.ru
+    <form method="post">
+        <label>Сайт:
+            <select name="site">
+                <option value="iclim.ru">iclim.ru</option>
+                <option value="rusklimat.ru">rusklimat.ru</option>
+            </select>
         </label><br><br>
 
         <label>E-mail отчета:<br><input type="text" name="email" value="<?php echo htmlspecialchars(EMAIL); ?>"
@@ -98,11 +94,11 @@ try {
                                              readonly="readonly"></label><br>
         <label>CID (размещение):<br><input type="text" name="cid" style="width:100%;background-color:#EEE"
                                            readonly="readonly"></label><br><br>
-        <!--<label><input type="checkbox" id="parse_brands_check" name="parse_brands">Парсить бренды</label><br>-->
-        <!--<label><span id="parse_brands_label"></span><br><input type="text" name="url"
-                                                               style="width:100%"></label>-->
+        <label><input type="checkbox" id="parse_brands_check" name="parse_brands">Парсить бренды</label><br>
+        <label><span id="parse_brands_label"></span><br><input type="text" name="url"
+                                                               style="width:100%"></label>
 
-        <br>
+        <br><br>
 
         <select name="search_type">
             <option value="search_in_folder_to_put">Искать совпадения только в разделе где идет размещение</option>
@@ -118,12 +114,9 @@ try {
         <button>Начать парсинг</button>
     </form>
 </div>
-</div>
 
 <script>
     <?php echo $catalog; ?>
-
-    PasingStarted = false;
 
     $(function () {
         prepCat(goodsCatalog);
@@ -137,17 +130,15 @@ try {
         $('#positions_cid')
         // listen for event
             .on('changed.jstree', function (e, data) {
-                if (!PasingStarted) {
-                    var text = data.instance.get_node(data.selected[0]).text;
-                    var catName = text.match(/^(.+), id:/);
-                    var cid = text.match(/id:(.+)$/);
-                    var modCatName = catName[1].replace(/<i.+i>/, '');
-                    $("input[name=cat_name]").val(modCatName);
-                    $("input[name=cid]").val(cid[1]);
-                }
+                var text = data.instance.get_node(data.selected[0]).text;
+                var catName = text.match(/^(.+), id:/);
+                var cid = text.match(/id:(.+)$/);
+                var modCatName = catName[1].replace(/<i.+i>/, '');
+                $("input[name=cat_name]").val(modCatName);
+                $("input[name=cid]").val(cid[1]);
             });
 
-        /*$("#parse_brands_check").click(function (e) {
+        $("#parse_brands_check").click(function (e) {
             //e.preventDefault();
             setBrandsAttrs();
             //return false;
@@ -158,19 +149,19 @@ try {
         } else {
             $("#parse_brands_check").prop("checked", false);
         }
-        setBrandsAttrs();*/
+        setBrandsAttrs();
 
-        /*var site = $.cookie('site');
+        var site = $.cookie('site');
         if (site) {
             $('[name="site"] [value="' + site + '"]').prop('selected', true);
         }
         $('[name="site"]').click(function () {
             var cookieOptions = {expires: 70, path: '/'};
             $.cookie('site', $(this).val(), cookieOptions);
-        });*/
+        });
     });
 
-    /*function setBrandsAttrs() {
+    function setBrandsAttrs() {
         var cookieOptions = {expires: 70, path: '/'};
         if ($("#parse_brands_check").prop("checked")) {
             $("#parse_brands_label").text('Url донора (со списком брендов):');
@@ -179,7 +170,7 @@ try {
             $("#parse_brands_label").text('Url донора (первая страница):');
             $.cookie('use_brands_page', 'no', cookieOptions);
         }
-    }*/
+    }
 
     var prepCatCount = 0;
     function prepCat(elem) {
@@ -194,18 +185,6 @@ try {
             }
         }
     }
-    
-    $('#parse_form').submit(function (e) {
-        e.preventDefault();
-        $.post('parse.morena.ru.php', $(this).serialize(), function (data) {
-            PasingStarted = true;
-            alert(data);
-            $("#start-panel-wrapper :input").attr("disabled", true);
-        }).error(function () {
-            alert('Произошла ошибка!');
-        });
-        return false;
-    });
 </script>
 
 

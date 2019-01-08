@@ -4,6 +4,8 @@ class DataReader
 {
     private $cookie;
 
+    const ROOT_ADMIN_URL = 'https://x218025.storeland.ru';
+
     public function __construct()
     {
         $this->cookie = __DIR__ . '/cookies/storeland.cookie.' . uniqid(rand(), true) . '.txt';
@@ -103,7 +105,7 @@ class DataReader
         $this->setCommonCurlOpt($ch);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_URL, "http://ventfabrika.su/admin/login");
+        curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/login");
 
         $result = curl_exec($ch);
 
@@ -189,7 +191,7 @@ class DataReader
 
         $this->setCommonCurlOpt($ch);
         curl_setopt($ch, CURLOPT_POST, false);
-        curl_setopt($ch, CURLOPT_URL, "http://ventfabrika.su/admin/store#,all_goods");
+        curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/store#,all_goods");
 
         $result = curl_exec($ch);
 
@@ -252,7 +254,7 @@ class DataReader
             $this->setCommonCurlOpt($ch);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-            curl_setopt($ch, CURLOPT_URL, "http://ventfabrika.su/admin/store_goods_img_upload");
+            curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/store_goods_img_upload");
 
             $result = curl_exec($ch);
 
@@ -297,7 +299,7 @@ class DataReader
 
             $this->setCommonCurlOpt($ch);
             curl_setopt($ch, CURLOPT_POST, false);
-            curl_setopt($ch, CURLOPT_URL, "http://ventfabrika.su/json/attr?" . self::genRndKey());
+            curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/json/attr?" . self::genRndKey());
 
             $result = curl_exec($ch);
 
@@ -360,7 +362,7 @@ class DataReader
 
         $this->setCommonCurlOpt($ch);
         curl_setopt($ch, CURLOPT_POST, false);
-        curl_setopt($ch, CURLOPT_URL, "http://ventfabrika.su/admin/store_goods_add");
+        curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/store_goods_add");
 
         $result = curl_exec($ch);
 
@@ -398,7 +400,7 @@ class DataReader
         $this->setCommonCurlOpt($ch);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-        curl_setopt($ch, CURLOPT_URL, "http://ventfabrika.su/admin/store_goods_add/");
+        curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/store_goods_add/");
 
         $result = curl_exec($ch);
 
@@ -431,7 +433,7 @@ class DataReader
             $this->setCommonCurlOpt($ch);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-            curl_setopt($ch, CURLOPT_URL, 'http://ventfabrika.su/admin/store_catalog');
+            curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . '/admin/store_catalog');
 
             $result = curl_exec($ch);
 
@@ -481,7 +483,7 @@ class DataReader
 
         $this->setCommonCurlOpt($ch);
         curl_setopt($ch, CURLOPT_POST, false);
-        curl_setopt($ch, CURLOPT_URL, "http://ventfabrika.su/admin/store#,all_goods");
+        curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/store#,all_goods");
 
         $result = curl_exec($ch);
 
@@ -503,8 +505,8 @@ class DataReader
     public function getSublist($cid)
     {
         $cid = trim($cid);
-        //$url = 'http://ventfabrika.su/admin/store#,' . $cid;
-        $url = 'http://ventfabrika.su/admin/store_catalog';
+        //$url = self::ROOT_ADMIN_URL . '/admin/store#,' . $cid;
+        $url = self::ROOT_ADMIN_URL . '/admin/store_catalog';
 
         $ch = curl_init();
 
@@ -576,7 +578,7 @@ class DataReader
     public function createSubelement($cid, $name, $nextTry = false)
     {
         $cid = trim($cid);
-        $url = 'http://ventfabrika.su/admin/store_catalog';
+        $url = self::ROOT_ADMIN_URL . '/admin/store_catalog';
 
         $ch = curl_init();
 

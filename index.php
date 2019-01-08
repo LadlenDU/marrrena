@@ -9,15 +9,24 @@ $parsingWasBroken = false;
 if ($pid) {
     if (file_exists("/proc/$pid")) {
         if ($cmdLine = file_get_contents("/proc/$pid/cmdline")) {
-            if (strpos($cmdLine, 'php') === false) {
+            //TODO: проверить !!!
+            if (strpos($cmdLine, 'apache') === false) {
                 // Видимо это все-таки не наш процесс.
                 file_put_contents('morena.process.pid', '');
                 $parsingWasBroken = true;
             } else {
-                
+                header("Location: /parse.status.php");
+                exit;
             }
         }
+    } else {
+        $parsingWasBroken = true;
     }
+}
+
+if ($parsingWasBroken) {
+    header("Location: /parse.restart.php");
+    exit;
 }
 
 try {
@@ -198,6 +207,7 @@ try {
             PasingStarted = true;
             alert(data);
             $("#start-panel-wrapper :input").attr("disabled", true);
+
         }).error(function () {
             alert('Произошла ошибка!');
         });

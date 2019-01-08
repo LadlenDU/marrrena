@@ -6,7 +6,7 @@ $pid = file_get_contents('morena.process.pid');
 
 $parsingWasBroken = false;
 
-if ($pid) {
+/*if ($pid) {
     if (file_exists("/proc/$pid")) {
         if ($cmdLine = file_get_contents("/proc/$pid/cmdline")) {
             //TODO: проверить !!!
@@ -22,7 +22,7 @@ if ($pid) {
     } else {
         $parsingWasBroken = true;
     }
-}
+}*/
 
 if ($parsingWasBroken) {
     header("Location: /parse.restart.php");

@@ -129,9 +129,12 @@ class Morena
         $href = trim($href);
 
         foreach ($elem as $item) {
+            if (!isset($item['href'])) {
+                $stopper = 1;
+            }
             if (trim($item['href']) == $href) {
                 $elementCid = $item['cid'];
-                return isset($result['status']) ? $result['status'] : false;
+                return isset($item['status']) ? $item['status'] : false;
             }
 
             if (!empty($item['children'])) {
@@ -145,7 +148,7 @@ class Morena
         return 'not_found';
     }
 
-    protected function ifElemExistsByHref($href, $root = false)
+    /*protected function ifElemExistsByHref($href, $root = false)
     {
         if ($root == false) {
             $root = $this->statusFileContent;
@@ -164,7 +167,7 @@ class Morena
         }
 
         return false;
-    }
+    }*/
 
     protected function parseCategoryLabels()
     {
@@ -250,9 +253,19 @@ class Morena
             $subCatName = self::cleanSpaces($cated->textContent);
             $ifSublink = ($cated->getAttribute('class') == 'sublink');
 
-            if (!isset($this->statusFileContent[$hrefParent]['children'][$subCatHref])) {
+            if (empty($hrefParent)) {
+                $stopper = 1;
+            }
+            if (
+                ($ifSublink && !isset($this->statusFileContent[$hrefParent]['children'][$subcatForChildren['href']]['children'][$subCatHref]))
+                || (!$ifSublink && !isset($this->statusFileContent[$hrefParent]['children'][$subCatHref]))
+            ) {
+            //if (!isset($this->statusFileContent[$hrefParent]['children'][$subCatHref])) {
                 if ($ifSublink) {
                     $elementCid = $this->dr->createSubelement($subcatForChildren['cid'], $subCatName);
+                    if (empty($subcatForChildren['href']) || empty($hrefParent)) {
+                        $stopper = 1;
+                    }
                     $this->statusFileContent[$hrefParent]['children'][$subcatForChildren['href']]['children'][$subCatHref] = [
                         'name' => $subCatName,
                         'href' => $subCatHref,
@@ -266,6 +279,9 @@ class Morena
                         'href' => $subCatHref,
                         'cid' => $elementCid,
                     ];
+                    if (empty($hrefParent)) {
+                        $stopper = 1;
+                    }
                     $this->statusFileContent[$hrefParent]['children'][$subCatHref] = [
                         'name' => $subCatName,
                         'href' => $subCatHref,
@@ -277,9 +293,18 @@ class Morena
                 }
                 $this->saveStatusFileContent();
             } else {
+                if (empty($hrefParent)) {
+                    $stopper = 1;
+                }
                 $srchRes = $this->ifElemCompletedByHref($this->statusFileContent[$hrefParent]['children'], $subCatHref, $elementCid);
                 if ($srchRes == 'not_found') {
                     throw new \Exception('HREF не найден: ' . $subCatHref);
+                }
+                if (!$ifSublink) {
+                    $subcatForChildren = [
+                        'href' => $subCatHref,
+                        'cid' => $elementCid,
+                    ];
                 }
                 if ($srchRes) {
                     continue;

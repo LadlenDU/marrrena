@@ -13,6 +13,9 @@ class Morena
 
     protected $dom;
 
+    /** @var array содержимое STATUS_FILE */
+    protected $statusFileContent = [];
+
     /**
      * Morena constructor.
      * @param $cid string ID категории
@@ -26,6 +29,32 @@ class Morena
         $this->reportEmail = $reportEmail;
         $this->searchType = $searchType;
         $this->percentAddPrice = $percentAddPrice;
+
+        $this->getStatusFileContent();
+    }
+
+    protected function getStatusFileContent()
+    {
+        if (($contentJson = file_get_contents(self::STATUS_FILE)) === false) {
+            throw new \Exception('Не удалось прочитать содержимое файла ' . self::STATUS_FILE);
+        }
+
+        if (($contentArr = json_decode($contentJson, true)) === null) {
+            throw new \Exception('Не удалось декодировать JSON строку ' . $contentJson);
+        }
+
+        $this->statusFileContent = $contentArr;
+    }
+
+    protected function saveStatusFileContent()
+    {
+         if (($encoded = json_encode($this->statusFileContent)) === false) {
+             throw new \Exception('json_encode() не закодировало массив: ' . print_r($this->statusFileContent, true));
+         }
+
+        if (file_put_contents(self::STATUS_FILE, $encoded) === false) {
+            throw new \Exception('Не удалось сохранить JSON строку в файл статуса: ' . $encoded);
+        }
     }
 
     public static function getParseStatusOfNode($node)
@@ -43,14 +72,6 @@ class Morena
     public static function getParseStatus()
     {
         $status = false;
-
-        /*if ($contentJson = file_get_contents(self::STATUS_FILE)) {
-            if ($contentArr = json_decode($contentJson, true)) {
-                $status = self::getParseStatusOfNode($contentArr);
-            } else {
-                throw new \Exception('Не удалось декодировать JSON строку ' . $contentJson);
-            }
-        }*/
 
         if ($contentArr = self::getStatusFileData()) {
             $status = self::getParseStatusOfNode($contentArr);
@@ -73,7 +94,7 @@ class Morena
         $this->dom->preserveWhiteSpace = false;
         $load = $this->dom->loadHTMLFile(self::URL);
 
-        $this->parseMainLabels($load);
+        $this->parseCategoryLabels();
     }
 
     protected function getStatusFileData()
@@ -89,7 +110,7 @@ class Morena
         return $data;
     }
 
-    protected function ifElemCompletedByHref($href)
+    protected function ifElemCompletedByHref($href, $type)
     {
         if ($data = self::getStatusFileData()) {
             foreach ($data as &$item) {
@@ -129,7 +150,14 @@ class Morena
         return false;
     }
 
-    protected function parseMainLabels()
+    protected function ifElemExistsByHref($href, $type)
+    {
+        foreach ($this->statusFileContent as $elem) {
+            
+        }
+    }
+
+    protected function parseCategoryLabels()
     {
         $xpath = new DOMXPath($this->dom);
         $rootXPath = "//div[@id='rubricator-list']/ul/li";
@@ -137,7 +165,10 @@ class Morena
             foreach ($brandsRoot as $brand) {
                 //$name = $xpath->query("./p/a", $brand)->item(0)->textContent;
                 $elem = $xpath->query("./p/a", $brand)->item(0);
-                if ($this->ifElemCompletedByHref($elem->getAttribute('href'))) {
+                if ($this->ifElemExistsByHref($elem->getAttribute('href'), 'category')) {
+
+                }
+                if ($this->ifElemCompletedByHref($elem->getAttribute('href'), 'category')) {
                     continue;
                 }
             }

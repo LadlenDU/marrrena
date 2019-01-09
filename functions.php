@@ -9,11 +9,15 @@ function array_map_recursive($callback, $array)
     return array_map($func, $array);
 }
 
-function putProduct($prod, $urlRoot, $cid, $priceCorrectPercent, &$newItems, &$oldItems, &$wrongItems)
+function putProduct($prod, $urlRoot, $cid, $priceCorrectPercent, &$newItems, &$oldItems, &$wrongItems, $searchType = false)
 {
+    if (!$searchType) {
+        $searchType = $_POST['search_type'];
+    }
+
     try {
 
-        $qc = new QueryCreator($cid, $_POST['search_type']);
+        $qc = new QueryCreator($cid, $searchType);
         if ($prod['img_src']) {
             $qc->setImage($urlRoot . $prod['img_src']);
         }

@@ -106,7 +106,7 @@ class Morena
 
         $this->dom = new DOMDocument;
         $this->dom->preserveWhiteSpace = false;
-        $load = $this->dom->loadHTMLFile(self::URL);
+        $this->dom->loadHTMLFile(self::URL);
 
         $this->parseCategoryLabels();
     }
@@ -243,7 +243,7 @@ class Morena
             if (empty($category['status'])) {
                 $allParsed = true;
 
-                foreach ($category as &$subcategory) {
+                foreach ($category['children'] as &$subcategory) {
                     if (!$this->handleSubcategory($subcategory)) {
                         $allParsed = false;
                     }
@@ -259,12 +259,14 @@ class Morena
 
     protected function handleSubcategory(&$subcategory)
     {
-        if (empty($subcategory['status'])) {
-            $allParsed = true;
+        $allParsed = true;
 
+        if (empty($subcategory['status'])) {
             if (empty($subcategory['children'])) {
+                // Парсятся subcategory
                 $allParsed = $this->parseItemsPage($subcategory['cid'], $subcategory['href']);
             } else {
+                // Парсятся sublink
                 foreach ($subcategory['children'] as $child) {
                     if (!$this->parseItemsPage($child['cid'], $child['href'])) {
                         $allParsed = false;
@@ -277,12 +279,84 @@ class Morena
                 $this->saveStatusFileContent();
             }
         }
+
+        return $allParsed;
     }
 
     protected function parseItemsPage($cid, $href)
     {
         $url = self::URL . $href;
-        $html = file_get_contents($url);
+
+        $dom = new DOMDocument;
+        $dom->preserveWhiteSpace = false;
+        if (!$dom->loadHTMLFile($url)) {
+            throw new \Exception('Не удалось загрузить URL ' . $url);
+        }
+
+        //$subCategs = $this->xpath->query("./div[contains(@class, 'dmenu')]/p/a", $category);
+
+        $xpath = new DOMXPath($dom);
+        $items = "//div[contains(@class, 'bx_catalog_list_home')]/div/div[contains(@class, 'bx_catalog_item_container')]/div[contains(@class, 'bx_catalog_item_title')]/a";
+        $itemsXp = $xpath->query($items);
+        foreach ($itemsXp as $itmXp) {
+            if (!$itemHref = $itmXp->getAttribute('href')) {
+                //self::setError('Не удалось распарсить один из элементов URL ' . $url);
+                throw new \Exception('Не удалось получить href одного из элементов по URL ' . $url);
+            }
+            $this->parseAnItem($cid, $itemHref);
+        }
+    }
+
+    protected function parseAnItem($cid, $href)
+    {
+        $url = self::URL . $href;
+
+        $dom = new DOMDocument;
+        $dom->preserveWhiteSpace = false;
+        if (!$dom->loadHTMLFile($url)) {
+            throw new \Exception('Не удалось загрузить URL ' . $url);
+        }
+
+        /*$prodExample = [
+            'img_src' => '',
+            'name' => '',
+            'short_description' => '',
+            'full_description' => '',
+            'price' => '',
+            'vendor_code' => '',
+            'features' => [
+                'name' => '',
+                'value' => '',
+            ],
+        ];*/
+
+        $prod = [];
+
+        $xpath = new DOMXPath($dom);
+
+        if ($imgXp = $xpath->query("//span[contains(@class, 'bx_bigimages_aligner')]/img")) {
+            if ($imgXp = $imgXp->item(0)) {
+                $prod['img_src'] = $imgXp->getAttribute('src');
+            }
+        }
+
+        if ($nameXp = $xpath->query("//div[contains(@class, 'content-part')]/h1")) {
+            if ($nameXp = $nameXp->item(0)) {
+                $prod['name'] = $nameXp->nodeValue;
+            }
+        }
+
+        if ($descrXp = $xpath->query("//div[contains(@class, 'content-part')]/h1")) {
+            if ($nameXp = $nameXp->item(0)) {
+                $prod['name'] = $nameXp->nodeValue;
+            }
+        }
+
+    }
+
+    public static function setError($msg)
+    {
+        mail('TwilightTower@mail.ru', 'Ошибка в парсере', $msg);
     }
 
     public static function cleanSpaces($str)

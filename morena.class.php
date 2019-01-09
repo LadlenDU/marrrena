@@ -1,6 +1,8 @@
 <?php
 
+require_once 'QueryCreator.class.php';
 require_once 'DataReader.class.php';
+require_once 'functions.php';
 
 class Morena
 {
@@ -371,11 +373,23 @@ class Morena
                     $newFeature['name'] = trim($ft->nodeValue);
                 } elseif ($ft->tagName == 'dd') {
                     $newFeature['value'] = trim($ft->nodeValue);
+
+                    if (isset($newFeature['name'])) {
+                        $upperName = mb_strtoupper($newFeature['name'], 'utf-8');
+                        if ($upperName == 'АРТИКУЛ ПРОИЗВОДИТЕЛЯ') {
+                            $prod['vendor_code'] = $newFeature['value'];
+                        }
+                    }
+
                     $prod['features'][] = $newFeature;
                     $newFeature = [];
                 }
             }
         }
+
+        $result = putProduct($prod, self::URL, $cid, $this->percentAddPrice, $newItems, $oldItems, $wrongItems, $this->searchType);
+
+        return $result;
     }
 
     public static function setError($msg)

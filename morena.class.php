@@ -336,22 +336,46 @@ class Morena
 
         if ($imgXp = $xpath->query("//span[contains(@class, 'bx_bigimages_aligner')]/img")) {
             if ($imgXp = $imgXp->item(0)) {
-                $prod['img_src'] = $imgXp->getAttribute('src');
+                $prod['img_src'] = trim($imgXp->getAttribute('src'));
             }
         }
 
         if ($nameXp = $xpath->query("//div[contains(@class, 'content-part')]/h1")) {
             if ($nameXp = $nameXp->item(0)) {
-                $prod['name'] = $nameXp->nodeValue;
+                $prod['name'] = trim($nameXp->nodeValue);
             }
         }
 
-        if ($descrXp = $xpath->query("//div[contains(@class, 'content-part')]/h1")) {
-            if ($nameXp = $nameXp->item(0)) {
-                $prod['name'] = $nameXp->nodeValue;
+        if ($descrXp = $xpath->query("//div[contains(@id, 'tab1')]")) {
+            if ($descrXp = $descrXp->item(0)) {
+                $prod['short_description'] = trim($descrXp->nodeValue);
+                $prod['full_description'] = $prod['short_description'] ;
+
             }
         }
 
+        if ($priceXp = $xpath->query("//div[contains(@class, 'item_current_price')]")) {
+            if ($priceXp = $priceXp->item(0)) {
+                $prod['price'] = trim($priceXp->nodeValue);
+                $prod['price'] = str_replace('руб.', '', $prod['price']);
+                $prod['price'] = str_replace('руб', '', $prod['price']);
+                $prod['price'] = str_replace('р.', '', $prod['price']);
+                $prod['price'] = str_replace('р', '', $prod['price']);
+            }
+        }
+
+        $prod['features'] = [];
+        if ($featXp = $xpath->query("//div[contains(@id, 'tab6')]/dl/*")) {
+            foreach ($featXp as $ft) {
+                if ($ft->tagName == 'dt') {
+                    $newFeature['name'] = trim($ft->nodeValue);
+                } elseif ($ft->tagName == 'dd') {
+                    $newFeature['value'] = trim($ft->nodeValue);
+                    $prod['features'][] = $newFeature;
+                    $newFeature = [];
+                }
+            }
+        }
     }
 
     public static function setError($msg)

@@ -252,6 +252,7 @@ class Morena
 
             if (!isset($this->statusFileContent[$hrefParent]['children'][$subCatHref])) {
                 if ($ifSublink) {
+                    $elementCid = $this->dr->createSubelement($subcatForChildren['cid'], $subCatName);
                     $this->statusFileContent[$hrefParent]['children'][$subcatForChildren['href']]['children'][$subCatHref] = [
                         'name' => $subCatName,
                         'href' => $subCatHref,

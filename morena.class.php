@@ -1,5 +1,7 @@
 <?php
 
+require_once 'DataReader.class.php';
+
 class Morena
 {
     const URL = 'https://morena.ru';
@@ -12,6 +14,9 @@ class Morena
     public $percentAddPrice;
 
     protected $dom;
+
+    /** @var  DataReader */
+    protected $dr;
 
     /** @var array содержимое STATUS_FILE */
     protected $statusFileContent = [];
@@ -39,6 +44,12 @@ class Morena
             throw new \Exception('Не удалось прочитать содержимое файла ' . self::STATUS_FILE);
         }
 
+        if (!$contentJson) {
+            file_put_contents(self::STATUS_FILE, '[]');
+            $this->statusFileContent = [];
+            return;
+        }
+
         if (($contentArr = json_decode($contentJson, true)) === null) {
             throw new \Exception('Не удалось декодировать JSON строку ' . $contentJson);
         }
@@ -57,7 +68,7 @@ class Morena
         }
     }
 
-    public static function getParseStatusOfNode($node)
+    /*public static function getParseStatusOfNode($node)
     {
         $success = true;
         foreach ($node as $item) {
@@ -67,9 +78,9 @@ class Morena
             }
         }
         return $success;
-    }
+    }*/
 
-    public static function getParseStatus()
+    /*public static function getParseStatus()
     {
         $status = false;
 
@@ -78,17 +89,17 @@ class Morena
         }
 
         return $status;
-    }
+    }*/
 
     public function parse()
     {
-        if (self::getParseStatus()) {
+        /*if (self::getParseStatus()) {
             throw new \Exception('Парсинг завершен. Чтобы перепарсить удалите файл ' . self::STATUS_FILE);
-        }
+        }*/
 
-        //$dr = new DataReader();
-        //$dr->login();
-        //$brandList = $dr->getSublist($this->cid);
+        $this->dr = new DataReader();
+        $this->dr->login();
+        //$categoryList = $dr->getSublist($this->cid);
 
         $this->dom = new DOMDocument;
         $this->dom->preserveWhiteSpace = false;
@@ -150,11 +161,25 @@ class Morena
         return false;
     }
 
-    protected function ifElemExistsByHref($href, $type)
+    protected function ifElemExistsByHref($href, $root = false)
     {
-        foreach ($this->statusFileContent as $elem) {
-            
+        if ($root == false) {
+            $root = $this->statusFileContent;
         }
+
+        $href = trim($href);
+        foreach ($root as $elem) {
+            if ($elem['href'] == $href) {
+                return true;
+            }
+            if (!empty($elem['children'])) {
+                if ($this->ifElemExistsByHref($href, $elem['children'])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     protected function parseCategoryLabels()
@@ -165,12 +190,24 @@ class Morena
             foreach ($brandsRoot as $brand) {
                 //$name = $xpath->query("./p/a", $brand)->item(0)->textContent;
                 $elem = $xpath->query("./p/a", $brand)->item(0);
-                if ($this->ifElemExistsByHref($elem->getAttribute('href'), 'category')) {
+                if (!$this->ifElemExistsByHref($elem->getAttribute('href'))) {
 
+                    $categoryName = trim($name = $xpath->query("./p/a", $brand)->item(0)->textContent);
+
+                    $subCategoryList = $this->dr->getSublist($this->cid);
+                    $elementCid = $this->dr->createSubelement($this->cid, $categoryName);
+
+                    $this->statusFileContent[] = [
+                        'name' => $categoryName,
+                        'href' => trim($elem->getAttribute('href')),
+                        'type' => 'category',
+		                'children' => [],
+		                'status' => true,
+                    ];
                 }
-                if ($this->ifElemCompletedByHref($elem->getAttribute('href'), 'category')) {
+                /*if ($this->ifElemCompletedByHref($elem->getAttribute('href'), 'category')) {
                     continue;
-                }
+                }*/
             }
         }
     }

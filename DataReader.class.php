@@ -6,6 +6,9 @@ class DataReader
 
     const ROOT_ADMIN_URL = 'https://x218025.storeland.ru';
 
+    const STORELAND_LOGIN = 'twilighttower@mail.ru';
+    const STORELAND_PASSWORD = 'FycUrYCa';
+
     public function __construct()
     {
         $this->cookie = __DIR__ . '/cookies/storeland.cookie.' . uniqid(rand(), true) . '.txt';
@@ -125,8 +128,8 @@ class DataReader
             'site_id' => '',
             'to' => '',
             'hash' => $hash,
-            'form[user_mail]' => STORELAND_LOGIN,
-            'form[user_pass]' => STORELAND_PASSWORD,
+            'form[user_mail]' => self::STORELAND_LOGIN,
+            'form[user_pass]' => self::STORELAND_PASSWORD,
         );
 
         $ch = curl_init();

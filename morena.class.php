@@ -232,7 +232,57 @@ class Morena
                     continue;
                 }*/
             }
+
+            $this->parseItems();
         }
+    }
+
+    protected function parseItems()
+    {
+        foreach ($this->statusFileContent as &$category) {
+            if (empty($category['status'])) {
+                $allParsed = true;
+
+                foreach ($category as &$subcategory) {
+                    if (!$this->handleSubcategory($subcategory)) {
+                        $allParsed = false;
+                    }
+                }
+
+                if ($allParsed) {
+                    $category['status'] = true;
+                    $this->saveStatusFileContent();
+                }
+            }
+        }
+    }
+
+    protected function handleSubcategory(&$subcategory)
+    {
+        if (empty($subcategory['status'])) {
+            $allParsed = true;
+
+            if (empty($subcategory['children'])) {
+                $allParsed = $this->parseItemsPage($subcategory['cid'], $subcategory['href']);
+            } else {
+                foreach ($subcategory['children'] as $child) {
+                    if (!$this->parseItemsPage($child['cid'], $child['href'])) {
+                        $allParsed = false;
+                    }
+                }
+            }
+
+            if ($allParsed) {
+                $subcategory['status'] = true;
+                $this->saveStatusFileContent();
+            }
+        }
+    }
+
+    protected function parseItemsPage($cid, $href)
+    {
+        $url = self::URL . $href;
+        $html = file_get_contents($url);
     }
 
     public static function cleanSpaces($str)

@@ -187,28 +187,61 @@ class Morena
         $xpath = new DOMXPath($this->dom);
         $rootXPath = "//div[@id='rubricator-list']/ul/li";
         if ($brandsRoot = $xpath->query($rootXPath)) {
+
+            $subCategoryList = $this->dr->getSublist($this->cid);
+
             foreach ($brandsRoot as $brand) {
-                //$name = $xpath->query("./p/a", $brand)->item(0)->textContent;
                 $elem = $xpath->query("./p/a", $brand)->item(0);
-                if (!$this->ifElemExistsByHref($elem->getAttribute('href'))) {
 
-                    $categoryName = trim($name = $xpath->query("./p/a", $brand)->item(0)->textContent);
+                $categoryName = trim($name = $xpath->query("./p/a", $brand)->item(0)->textContent);
 
-                    $subCategoryList = $this->dr->getSublist($this->cid);
+                //$subCategoryList = $this->dr->getSublist($this->cid);
+
+                $subcategoryExists = false;
+                foreach ($this->statusFileContent as $sfc) {
+                    if (isset($subCategoryList[$sfc['cid']])) {
+                        $subcategoryExists = true;
+                        break;
+                    }
+                }
+
+                if (!$subcategoryExists) {
                     $elementCid = $this->dr->createSubelement($this->cid, $categoryName);
-
                     $this->statusFileContent[] = [
                         'name' => $categoryName,
                         'href' => trim($elem->getAttribute('href')),
+                        'cid' => $elementCid,
+                        'type' => 'category',
+                        'children' => [],
+                        'status' => false,
+                    ];
+                    $this->saveStatusFileContent();
+                } else {
+                    $elementCid = 'unknown';
+                }
+
+                /*if (!$this->ifElemExistsByHref($elem->getAttribute('href'))) {
+                    $this->statusFileContent[] = [
+                        'name' => $categoryName,
+                        'href' => trim($elem->getAttribute('href')),
+                        'cid' => $elementCid,
                         'type' => 'category',
 		                'children' => [],
-		                'status' => true,
+		                'status' => false,
                     ];
-                }
+                    $this->saveStatusFileContent();
+                }*/
                 /*if ($this->ifElemCompletedByHref($elem->getAttribute('href'), 'category')) {
                     continue;
                 }*/
             }
+        }
+    }
+
+    protected function parseSubCategoryLabels()
+    {
+        foreach ($this->statusFileContent as $category) {
+
         }
     }
 }

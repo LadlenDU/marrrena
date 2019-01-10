@@ -266,28 +266,36 @@ class Morena
         if (empty($subcategory['status'])) {
             if (empty($subcategory['children'])) {
                 // Парсятся subcategory
-                $allParsed = $this->parseItemsPage($subcategory['cid'], $subcategory['href']);
+                $allParsed = $this->parseItemsPage($subcategory);
+                if ($allParsed) {
+                    $subcategory['status'] = true;
+                    $this->saveStatusFileContent();
+                }
             } else {
                 // Парсятся sublink
-                foreach ($subcategory['children'] as $child) {
-                    if (!$this->parseItemsPage($child['cid'], $child['href'])) {
+                foreach ($subcategory['children'] as &$child) {
+                    //if (!$this->parseItemsPage($child['cid'], $child['href'])) {
+                    if ($this->parseItemsPage($child)) {
+                        $child['status'] = true;
+                        $this->saveStatusFileContent();
+                    } else {
                         $allParsed = false;
                     }
                 }
             }
 
-            if ($allParsed) {
+            /*if ($allParsed) {
                 $subcategory['status'] = true;
                 $this->saveStatusFileContent();
-            }
+            }*/
         }
 
         return $allParsed;
     }
 
-    protected function parseItemsPage($cid, $href)
+    protected function parseItemsPage(&$node)
     {
-        $url = self::URL . $href;
+        $url = self::URL . $node['href'];
 
         $dom = new DOMDocument;
         $dom->preserveWhiteSpace = false;
@@ -300,13 +308,40 @@ class Morena
         $xpath = new DOMXPath($dom);
         $items = "//div[contains(@class, 'bx_catalog_list_home')]/div/div[contains(@class, 'bx_catalog_item_container')]/div[contains(@class, 'bx_catalog_item_title')]/a";
         $itemsXp = $xpath->query($items);
-        foreach ($itemsXp as $itmXp) {
-            if (!$itemHref = $itmXp->getAttribute('href')) {
-                //self::setError('Не удалось распарсить один из элементов URL ' . $url);
-                throw new \Exception('Не удалось получить href одного из элементов по URL ' . $url);
+
+        $status = false;
+
+        if ($itemsXp) {
+            $status = true;
+            foreach ($itemsXp as $itmXp) {
+                if (!$itemHref = $itmXp->getAttribute('href')) {
+                    throw new \Exception('Не удалось получить href одного из элементов по URL ' . $url);
+                }
+
+                if (!$this->parseAnItem($node['cid'], $itemHref)) {
+                    $status = false;
+                    $node['children'][$itemHref] = [
+                        //'name' => $prod['name'],
+                        'href' => $itemHref,
+                        //'cid' => $elementCid,
+                        'type' => 'item',
+                        'status' => false,
+                    ];
+                } else {
+                    $node['children'][$itemHref] = [
+                        //'name' => $prod['name'],
+                        'href' => $itemHref,
+                        //'cid' => $elementCid,
+                        'type' => 'item',
+                        'status' => true,
+                    ];
+                }
+
+                $this->saveStatusFileContent();
             }
-            $this->parseAnItem($cid, $itemHref);
         }
+
+        return $status;
     }
 
     protected function parseAnItem($cid, $href)
@@ -387,6 +422,10 @@ class Morena
             }
         }
 
+        if (!isset($prod['vendor_code'])) {
+            $prod['vendor_code'] = '';
+        }
+
         $result = putProduct($prod, self::URL, $cid, $this->percentAddPrice, $newItems, $oldItems, $wrongItems, $this->searchType);
 
         return $result;
@@ -431,7 +470,8 @@ class Morena
                     $this->statusFileContent[$hrefParent]['children'][$subcatForChildren['href']]['children'][$subCatHref] = [
                         'name' => $subCatName,
                         'href' => $subCatHref,
-                        'cid' => $subcatForChildren['cid'],
+                        //'cid' => $subcatForChildren['cid'],
+                        'cid' => $elementCid,
                         'type' => 'sublink',
                         'status' => false,
                     ];

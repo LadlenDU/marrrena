@@ -7,6 +7,8 @@ require_once 'configCommon.php';
 
 require_once 'morena.class.php';
 
+set_time_limit(0);
+
 try {
     //$parser = new Morena($_REQUEST['cid'], $_REQUEST['email'], $_REQUEST['search_type'], $_REQUEST['percent']);
     $parser = new Morena('cid_5491606', 'TwilightTower@mail.ru', 'search_in_folder_to_put', '-3');

@@ -293,8 +293,27 @@ class Morena
         return $allParsed;
     }
 
+    /**
+     * @param $xpath DOMXPath
+     */
+    protected function getPaginationUrls($xpath)
+    {
+        $urls = [];
+
+        $pagins = $xpath->query("//font[@class='text']/a");
+        foreach ($pagins as $pg) {
+            if (is_numeric(trim($pg->nodeValue))) {
+                $urls[] = trim($pg->href);
+            }
+        }
+
+        return $urls;
+    }
+
     protected function parseItemsPage(&$node)
     {
+        $status = false;
+
         $url = self::URL . $node['href'];
 
         $dom = new DOMDocument;
@@ -302,43 +321,63 @@ class Morena
         if (!$dom->loadHTMLFile($url)) {
             throw new \Exception('Не удалось загрузить URL ' . $url);
         }
-
-        //$subCategs = $this->xpath->query("./div[contains(@class, 'dmenu')]/p/a", $category);
-
         $xpath = new DOMXPath($dom);
-        $items = "//div[contains(@class, 'bx_catalog_list_home')]/div/div[contains(@class, 'bx_catalog_item_container')]/div[contains(@class, 'bx_catalog_item_title')]/a";
-        $itemsXp = $xpath->query($items);
 
-        $status = false;
+        $paginUrls = $this->getPaginationUrls($xpath);
+        $paginCounter = 0;
 
-        if ($itemsXp) {
-            $status = true;
-            foreach ($itemsXp as $itmXp) {
-                if (!$itemHref = $itmXp->getAttribute('href')) {
-                    throw new \Exception('Не удалось получить href одного из элементов по URL ' . $url);
+        for (; ;) {
+
+            if ($paginCounter > 0) {
+                $dom = new DOMDocument;
+                $dom->preserveWhiteSpace = false;
+                if (!$dom->loadHTMLFile($paginUrls[$paginCounter - 1])) {
+                    throw new \Exception('Не удалось загрузить URL ' . $url);
                 }
-
-                if (!$this->parseAnItem($node['cid'], $itemHref)) {
-                    $status = false;
-                    $node['children'][$itemHref] = [
-                        //'name' => $prod['name'],
-                        'href' => $itemHref,
-                        //'cid' => $elementCid,
-                        'type' => 'item',
-                        'status' => false,
-                    ];
-                } else {
-                    $node['children'][$itemHref] = [
-                        //'name' => $prod['name'],
-                        'href' => $itemHref,
-                        //'cid' => $elementCid,
-                        'type' => 'item',
-                        'status' => true,
-                    ];
-                }
-
-                $this->saveStatusFileContent();
+                $xpath = new DOMXPath($dom);
             }
+
+            $items = "//div[contains(@class, 'bx_catalog_list_home')]/div/div[contains(@class, 'bx_catalog_item_container')]/div[contains(@class, 'bx_catalog_item_title')]/a";
+            $itemsXp = $xpath->query($items);
+
+            if ($itemsXp) {
+                $status = true;
+                foreach ($itemsXp as $itmXp) {
+                    if (!$itemHref = $itmXp->getAttribute('href')) {
+                        throw new \Exception('Не удалось получить href одного из элементов по URL ' . $url);
+                    }
+
+                    if (empty($node['children'][$itemHref])) {
+                        if (!$this->parseAnItem($node['cid'], $itemHref)) {
+                            $status = false;
+                            $node['children'][$itemHref] = [
+                                //'name' => $prod['name'],
+                                'href' => $itemHref,
+                                //'cid' => $elementCid,
+                                'type' => 'item',
+                                'status' => false,
+                            ];
+                        } else {
+                            $node['children'][$itemHref] = [
+                                //'name' => $prod['name'],
+                                'href' => $itemHref,
+                                //'cid' => $elementCid,
+                                'type' => 'item',
+                                'status' => true,
+                            ];
+                        }
+
+                        $this->saveStatusFileContent();
+                    }
+                }
+            }
+
+            if (count($paginUrls) > $paginCounter) {
+                ++$paginCounter;
+                continue;
+            }
+            
+            break;
         }
 
         return $status;

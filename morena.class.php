@@ -141,7 +141,7 @@ class Morena
 
             if (!empty($item['children'])) {
                 $result = $this->ifElemCompletedByHref($item['children'], $href, $elementCid);
-                if ($result != 'not_found') {
+                if ($result !== 'not_found') {
                     return isset($result['status']) ? $result['status'] : false;
                 }
             }
@@ -209,7 +209,7 @@ class Morena
                     $this->saveStatusFileContent();
                 } else {
                     $srchRes = $this->ifElemCompletedByHref($this->statusFileContent, $href, $elementCid);
-                    if ($srchRes == 'not_found') {
+                    if ($srchRes === 'not_found') {
                         throw new \Exception('HREF не найден: ' . $href);
                     }
                     if ($srchRes) {
@@ -303,7 +303,7 @@ class Morena
         $pagins = $xpath->query("//font[@class='text']/a");
         foreach ($pagins as $pg) {
             if (is_numeric(trim($pg->nodeValue))) {
-                $urls[] = trim($pg->href);
+                $urls[] = trim($pg->getAttribute('href'));
             }
         }
 
@@ -331,7 +331,7 @@ class Morena
             if ($paginCounter > 0) {
                 $dom = new DOMDocument;
                 $dom->preserveWhiteSpace = false;
-                if (!$dom->loadHTMLFile($paginUrls[$paginCounter - 1])) {
+                if (!$dom->loadHTMLFile(self::URL . $paginUrls[$paginCounter - 1])) {
                     throw new \Exception('Не удалось загрузить URL ' . $url);
                 }
                 $xpath = new DOMXPath($dom);
@@ -376,7 +376,7 @@ class Morena
                 ++$paginCounter;
                 continue;
             }
-            
+
             break;
         }
 
@@ -538,7 +538,7 @@ class Morena
                     $stopper = 1;
                 }
                 $srchRes = $this->ifElemCompletedByHref($this->statusFileContent[$hrefParent]['children'], $subCatHref, $elementCid);
-                if ($srchRes == 'not_found') {
+                if ($srchRes === 'not_found') {
                     throw new \Exception('HREF не найден: ' . $subCatHref);
                 }
                 if (!$ifSublink) {

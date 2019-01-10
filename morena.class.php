@@ -300,14 +300,48 @@ class Morena
     {
         $urls = [];
 
+        $lastPg = false;
+
         $pagins = $xpath->query("//font[@class='text']/a");
         foreach ($pagins as $pg) {
+            $lastPg = $pg;
             if (is_numeric(trim($pg->nodeValue))) {
                 $urls[] = trim($pg->getAttribute('href'));
             }
         }
 
+        if ($urls) {
+            if (!$lastPagingUrl = trim($lastPg->getAttribute('href'))) {
+                throw new \Exception('Найден педжинатор но не найден URL конца. URL: ' .  $xpath->document->baseURI);
+            }
+
+            $lastPageNumber = self::getPageNumberFromPagingUrl(end($urls), $xpath);
+            $lastPageNumberReal = self::getPageNumberFromPagingUrl($lastPagingUrl, $xpath);
+
+            while ($lastPageNumberReal > $lastPageNumber) {
+                $parts = explode('=', $lastPagingUrl);
+                ++$lastPageNumber;
+                unset($parts[count($parts)]);
+
+                $urls[] = implode('=', $parts) . '=' . $lastPageNumber;
+            }
+        }
+
         return $urls;
+    }
+
+    protected static function getPageNumberFromPagingUrl($url, $xpath)
+    {
+        $partsOfLastUrl = explode('=', $url);
+        if (count($partsOfLastUrl) < 2) {
+            throw new \Exception('Не найдено =. URL: ' .  $xpath->document->baseURI);
+        }
+        $lastPageNumber = trim(end($partsOfLastUrl));
+        if (!is_numeric($lastPageNumber)) {
+            throw new \Exception('Последнее значение URL не число. URL: ' .  $xpath->document->baseURI . '; $pagingUrl: ' . $url);
+        }
+
+        return (int)$lastPageNumber;
     }
 
     protected function parseItemsPage(&$node)

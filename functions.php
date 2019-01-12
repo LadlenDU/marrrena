@@ -9,6 +9,18 @@ function array_map_recursive($callback, $array)
     return array_map($func, $array);
 }
 
+function setImageByCid($urlRoot, $imgSrc, $cid, $searchType = false)
+{
+    $qc = new QueryCreator($cid, $searchType);
+    $qc->setImage($urlRoot . $imgSrc);
+    $res = $qc->postNewItem();
+    if ($res != 'already_exists' && $res != 'item_set') {
+        throw new Exception('Internal error. Res: ' . $res);
+    }
+
+    return $res;
+}
+
 function putProduct($prod, $urlRoot, $cid, $priceCorrectPercent, &$newItems, &$oldItems, &$wrongItems, $searchType = false)
 {
     if (!$searchType) {

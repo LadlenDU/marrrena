@@ -321,7 +321,7 @@ class Morena
             while ($lastPageNumberReal > $lastPageNumber) {
                 $parts = explode('=', $lastPagingUrl);
                 ++$lastPageNumber;
-                unset($parts[count($parts)]);
+                unset($parts[count($parts) - 1]);
 
                 $urls[] = implode('=', $parts) . '=' . $lastPageNumber;
             }
@@ -459,8 +459,9 @@ class Morena
         if ($descrXp = $xpath->query("//div[contains(@id, 'tab1')]")) {
             if ($descrXp = $descrXp->item(0)) {
                 $prod['short_description'] = trim($descrXp->nodeValue);
-                $prod['full_description'] = $prod['short_description'] ;
-
+                //$prod['full_description'] = $prod['short_description'] ;
+                //TODO: разобраться
+                $prod['full_description'] = $descrXp ? $descrXp->ownerDocument->saveHTML($descrXp) : '';
             }
         }
 

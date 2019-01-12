@@ -124,11 +124,8 @@ class GidroTop
     {
         $href = trim($href);
 
-        foreach ($elem as $item) {
-            if (!isset($item['href'])) {
-                $stopper = 1;
-            }
-            if (trim($item['href']) == $href) {
+        foreach ($elem as $hrefKey => $item) {
+            if (trim($hrefKey) == $href) {
                 $elementCid = $item['cid'];
                 return isset($item['status']) ? $item['status'] : false;
             }
@@ -176,17 +173,11 @@ class GidroTop
             foreach ($categoryRoot as $category) {
                 $categoryName = trim($category->textContent);
 
-                $subcategoryExists = false;
-                foreach ($this->statusFileContent as $sfc) {
-                    if (isset($subCategoryList[$sfc['cid']])) {
-                        $subcategoryExists = true;
-                        break;
-                    }
-                }
+                $currHref = trim($category->getAttribute('href'));
 
                 $href = trim($category->getAttribute('href'));
 
-                if (!$subcategoryExists) {
+                if (!isset($this->statusFileContent[$currHref])) {
                     $elementCid = $this->dr->createSubelement($this->cid, $categoryName);
                     $this->statusFileContent[$href] = [
                         'name' => $categoryName,
@@ -207,7 +198,7 @@ class GidroTop
                     }
                 }
 
-                $this->parseSubCategory_1_Labels($category, $href, $elementCid);
+                $this->parseSubCategoryLabels($this->statusFileContent, $href, $elementCid);
 
             }
 
@@ -494,7 +485,7 @@ class GidroTop
         return $str;
     }
 
-    protected function parseSubCategory_1_Labels($category, $hrefParent, $cidParent)
+    protected function parseSubCategoryLabels(&$category, $hrefParent, $cidParent)
     {
         $url = self::URL . $hrefParent;
 
@@ -506,7 +497,64 @@ class GidroTop
 
         $xpath = new DOMXPath($dom);
 
-        $subCategs = $xpath->query("./div[@class='sub-category-link']", $category);
+        $subCategs = $xpath->query("//a[@class='sub-category-link']");
+        if (!$subCategs) {
+            //throw new \Exception('Не найдены субкатегории. Href: ' . $hrefParent . '; cidParent: ' . $cidParent);
+            echo 'Время парсить товары <br>';
+            return;
+        }
+        foreach ($subCategs as $cated) {
+            //TODO: можно добавлять изображения категорий - как???
+            $subCatHref = trim($cated->getAttribute('href'));
+            $subCatName = self::cleanSpaces($cated->getAttribute('title'));
+
+            if (empty($hrefParent)) {
+                $stopper = 1;
+            }
+
+            if (!isset($category['children'][$subCatHref])) {
+                $elementCid = $this->dr->createSubelement($cidParent, $subCatName);
+                $category['children'][$subCatHref] = [
+                    'name' => $subCatName,
+                    //'href' => $subCatHref,
+                    'cid' => $elementCid,
+                    'type' => 'subcategory',
+                    'children' => [],
+                    'status' => false,
+                ];
+                $this->saveStatusFileContent();
+            } else {
+                $elementCid = $category['children'][$subCatHref]['cid'];
+            }
+
+            if (empty($category['children'][$subCatHref]['status'])) {
+                $srchRes = $this->ifElemCompletedByHref($category['children'], $subCatHref, $elementCid);
+                if ($srchRes === 'not_found') {
+                    throw new \Exception('HREF не найден: ' . $subCatHref);
+                }
+                if ($srchRes) {
+                    $category['children'][$subCatHref]['status'] = true;
+                    $this->saveStatusFileContent();
+                } else {
+                    $this->parseSubCategoryLabels($category['children'][$subCatHref], $subCatHref, $elementCid);
+                }
+            }
+        }
+    }
+
+    protected function parseSubCategory_1_Labels($hrefParent, $cidParent)
+    {
+        $url = self::URL . $hrefParent;
+
+        $dom = new DOMDocument;
+        $dom->preserveWhiteSpace = false;
+        if (!$dom->loadHTMLFile($url)) {
+            throw new \Exception('Не удалось загрузить URL ' . $url);
+        }
+
+        $xpath = new DOMXPath($dom);
+
+        $subCategs = $xpath->query("//div[@class='sub-category-link']");
         if (!$subCategs) {
             throw new \Exception('Не найдены субкатегории. Href: ' . $hrefParent . '; cidParent: ' . $cidParent);
         }

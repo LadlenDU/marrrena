@@ -120,7 +120,7 @@ class QueryCreator
         for ($i = 0; $i < $len; ++$i) {
             $char = $code[$i];
             if (in_array($char, array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9'))) {
-                $numStr = (string)($char + $VENDOR_CODE_OFFSET[$count]);
+                $numStr = (string)((int)$char + $VENDOR_CODE_OFFSET[$count]);
                 $newCode .= substr($numStr, -1);
                 ++$count;
             } else {
@@ -186,9 +186,9 @@ class QueryCreator
 
     public function postNewItem()
     {
-        if ($this->searchType != 'no_search') {
+        if ($this->searchType !== 'no_search') {
 
-            $searchSection = ($this->searchType == 'search_in_folder_to_put') ? $this->cid : 'all_goods';
+            $searchSection = ($this->searchType === 'search_in_folder_to_put') ? $this->cid : 'all_goods';
 
             if (self::$to->ifItemExists($this->params['form[goods_name]'], $searchSection)) {
                 return 'already_exists';

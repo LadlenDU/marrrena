@@ -37,7 +37,7 @@ class DataReader
         $err = curl_errno($ch);
         $errmsg = curl_error($ch);
         $header = curl_getinfo($ch);
-        return "Errno: $err\nError: $errmsg\nInfo: $header";
+        return "Errno: $err\nError: $errmsg\nInfo: " . print_r($header, true);
     }
 
     /**
@@ -404,6 +404,8 @@ class DataReader
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
         curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/store_goods_add/");
+
+        //file_put_contents('', $params, FILE_APPEND);
 
         $result = curl_exec($ch);
 

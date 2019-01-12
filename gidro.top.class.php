@@ -168,7 +168,7 @@ class GidroTop
         $rootXPath = "//nav[contains(@class, 'catalog_body')]/ul/li/a";
         if ($categoryRoot = $this->xpath->query($rootXPath)) {
 
-            $subCategoryList = $this->dr->getSublist($this->cid);
+            //$subCategoryList = $this->dr->getSublist($this->cid);
 
             foreach ($categoryRoot as $category) {
                 $categoryName = trim($category->textContent);
@@ -206,24 +206,87 @@ class GidroTop
         }
     }
 
-    protected function parseItems()
+    protected function parseItems(&$category, $href)
     {
-        foreach ($this->statusFileContent as &$category) {
-            if (empty($category['status'])) {
-                $allParsed = true;
+        $url = self::URL . $href;
 
-                foreach ($category['children'] as &$subcategory) {
-                    if (!$this->handleSubcategory($subcategory)) {
-                        $allParsed = false;
-                    }
+        $dom = new DOMDocument;
+        $dom->preserveWhiteSpace = false;
+        $dom->loadHTMLFile($url);
+
+        $xpath = new DOMXPath($dom);
+
+        $urlList[] = $url;
+
+        if ($lastPage = $xpath->query("//ul[contains(@class, 'pagination')]/li[last()]/preceding::li[1]")) {
+            $hrefPage = trim($lastPage->getAttribute('href'));
+            $hrefPage = explode('=', $hrefPage);
+            if (count($hrefPage) != 2) {
+                throw new \Exception('Неверный формат pagination-ссылки. URL: ' . $url);
+            }
+            $pages = (int)$hrefPage[1];
+            for ($i = 2; $i <= $pages; ++$i) {
+                $urlList[] = $hrefPage[0] . '=' . $i;
+            }
+        }
+
+        foreach ($urlList as $l) {
+            $this->getItemsFromAPage(&$category, $href);
+        }
+
+
+    }
+
+    protected function getItemsFromAPage(&$category, $href)
+    {
+        $url = self::URL . $href;
+
+        $dom = new DOMDocument;
+        $dom->preserveWhiteSpace = false;
+        $dom->loadHTMLFile($url);
+
+        $xpath = new DOMXPath($dom);
+        $itemsXp = $xpath->query("//div[contains(@class, 'product')]/div/form/div[@class='product_content']/div/a");
+
+        $status = false;
+
+        if ($itemsXp) {
+            $status = true;
+            foreach ($itemsXp as $itmXp) {
+                if (!$itemHref = $itmXp->getAttribute('href')) {
+                    throw new \Exception('Не удалось получить href одного из элементов по URL ' . $href);
                 }
 
-                if ($allParsed) {
-                    $category['status'] = true;
+                if (empty($category['children'][$itemHref])
+                    || empty($category['children'][$itemHref]['status'])
+                ) {
+                    $forName = '';
+                    if (!$this->parseAnItem($category['cid'], $itemHref, $forName)) {
+                        $status = false;
+                        $category['children'][$itemHref] = [
+                            'name' => $forName,
+                            'href' => $itemHref,
+                            //'cid' => $elementCid,
+                            'type' => 'item',
+                            'status' => false,
+                        ];
+                        //echo "Не удалось собрать инфо с $itemHref\n";
+                    } else {
+                        $category['children'][$itemHref] = [
+                            'name' => $forName,
+                            'href' => $itemHref,
+                            //'cid' => $elementCid,
+                            'type' => 'item',
+                            'status' => true,
+                        ];
+                    }
+
                     $this->saveStatusFileContent();
                 }
             }
         }
+
+        return $status;
     }
 
     protected function handleSubcategory(&$subcategory)
@@ -279,7 +342,7 @@ class GidroTop
 
         if ($urls) {
             if (!$lastPagingUrl = trim($lastPg->getAttribute('href'))) {
-                throw new \Exception('Найден педжинатор но не найден URL конца. URL: ' .  $xpath->document->baseURI);
+                throw new \Exception('Найден педжинатор но не найден URL конца. URL: ' . $xpath->document->baseURI);
             }
 
             $lastPageNumber = self::getPageNumberFromPagingUrl(end($urls), $xpath);
@@ -301,11 +364,11 @@ class GidroTop
     {
         $partsOfLastUrl = explode('=', $url);
         if (count($partsOfLastUrl) < 2) {
-            throw new \Exception('Не найдено =. URL: ' .  $xpath->document->baseURI);
+            throw new \Exception('Не найдено =. URL: ' . $xpath->document->baseURI);
         }
         $lastPageNumber = trim(end($partsOfLastUrl));
         if (!is_numeric($lastPageNumber)) {
-            throw new \Exception('Последнее значение URL не число. URL: ' .  $xpath->document->baseURI . '; $pagingUrl: ' . $url);
+            throw new \Exception('Последнее значение URL не число. URL: ' . $xpath->document->baseURI . '; $pagingUrl: ' . $url);
         }
 
         return (int)$lastPageNumber;
@@ -384,7 +447,7 @@ class GidroTop
         return $status;
     }
 
-    protected function parseAnItem($cid, $href)
+    protected function parseAnItem($cid, $href, &$forName)
     {
         $url = self::URL . $href;
 
@@ -500,7 +563,8 @@ class GidroTop
         $subCategs = $xpath->query("//a[@class='sub-category-link']");
         if (!$subCategs) {
             //throw new \Exception('Не найдены субкатегории. Href: ' . $hrefParent . '; cidParent: ' . $cidParent);
-            echo 'Время парсить товары <br>';
+            echo "Время парсить товары. URL: $hrefParent <br>";
+            $this->parseItems($category, $hrefParent);
             return;
         }
         foreach ($subCategs as $cated) {

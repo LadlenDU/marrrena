@@ -446,20 +446,25 @@ class GidroTop
             }
         }
 
-        if ($fullDescrXp = $xpath->query("//div[@id='pane-overview']")) {
+        if ($fullDescrXp = $xpath->query("//div[@id='pane-overview']/*")) {
             if ($fullDescrXp = $fullDescrXp->item(0)) {
                 $prod['full_description'] = $fullDescrXp ? $fullDescrXp->ownerDocument->saveHTML($fullDescrXp) : trim($fullDescrXp->nodeValue);
             }
         }
 
         //HERE stop
-        if ($priceXp = $xpath->query("//form[@id='cart-form']/div[contains(@class, 'purchase')]/div[contains(@class, 'add2cart')]/div[contains(@class, 'price_holder')]/div[contains(@span, 'price')]")) {
+        if ($priceXp = $xpath->query("//form[@id='cart-form']/div[contains(@class, 'purchase')]/div[contains(@class, 'add2cart')]/div[contains(@class, 'price_holder')]/span[contains(@class, 'price')]")) {
             if ($priceXp = $priceXp->item(0)) {
                 $prod['price'] = trim($priceXp->getAttribute('data-price'));
+                $prod['price'] = str_replace('РУБ.', '', $prod['price']);
+                $prod['price'] = str_replace('РУБ', '', $prod['price']);
                 $prod['price'] = str_replace('руб.', '', $prod['price']);
                 $prod['price'] = str_replace('руб', '', $prod['price']);
                 $prod['price'] = str_replace('р.', '', $prod['price']);
                 $prod['price'] = str_replace('р', '', $prod['price']);
+                $prod['price'] = str_replace('Р.', '', $prod['price']);
+                $prod['price'] = str_replace('Р', '', $prod['price']);
+
             }
         }
 

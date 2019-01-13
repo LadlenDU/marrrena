@@ -424,7 +424,7 @@ class GidroTop
 
         $xpath = new DOMXPath($dom);
 
-        if ($imgXp = $xpath->query("//figure[contains(@class, 'product-gallery')]/div[contains(@class, 'owl-item')]/a")) {
+        if ($imgXp = $xpath->query("//figure[contains(@class, 'product-gallery')]/div[contains(@class, 'image')]/a")) {
             foreach ($imgXp as $keyIxp => $ixp) {
                 if ($keyIxp == 0) {
                     $prod['img_src'] = trim($ixp->getAttribute('href'));

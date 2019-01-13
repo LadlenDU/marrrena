@@ -162,7 +162,7 @@ class GidroTop
         return false;
     }*/
 
-    protected function parseCategoryLabels()
+    /*protected function parseCategoryLabels()
     {
         $this->xpath = new DOMXPath($this->dom);
         $rootXPath = "//nav[contains(@class, 'catalog_body')]/ul/li/a";
@@ -204,7 +204,7 @@ class GidroTop
 
             $this->parseItems();
         }
-    }
+    }*/
 
     protected function parseItems(&$category, $href)
     {
@@ -230,11 +230,14 @@ class GidroTop
             }
         }
 
-        foreach ($urlList as $l) {
-            $this->getItemsFromAPage(&$category, $href);
+        $result = true;
+        foreach ($urlList as $u) {
+            if (!$this->getItemsFromAPage($category, $u)) {
+                $result = false;
+            }
         }
 
-
+        return $result;
     }
 
     protected function getItemsFromAPage(&$category, $href)
@@ -270,7 +273,6 @@ class GidroTop
                             'type' => 'item',
                             'status' => false,
                         ];
-                        //echo "Не удалось собрать инфо с $itemHref\n";
                     } else {
                         $category['children'][$itemHref] = [
                             'name' => $forName,
@@ -289,7 +291,7 @@ class GidroTop
         return $status;
     }
 
-    protected function handleSubcategory(&$subcategory)
+    /*protected function handleSubcategory(&$subcategory)
     {
         $allParsed = true;
 
@@ -313,15 +315,10 @@ class GidroTop
                     }
                 }
             }
-
-            /*if ($allParsed) {
-                $subcategory['status'] = true;
-                $this->saveStatusFileContent();
-            }*/
         }
 
         return $allParsed;
-    }
+    }*/
 
     /**
      * @param $xpath DOMXPath
@@ -374,79 +371,6 @@ class GidroTop
         return (int)$lastPageNumber;
     }
 
-    protected function parseItemsPage(&$node)
-    {
-        $status = false;
-
-        $url = self::URL . $node['href'];
-
-        $dom = new DOMDocument;
-        $dom->preserveWhiteSpace = false;
-        if (!$dom->loadHTMLFile($url)) {
-            throw new \Exception('Не удалось загрузить URL ' . $url);
-        }
-        $xpath = new DOMXPath($dom);
-
-        $paginUrls = $this->getPaginationUrls($xpath);
-        $paginCounter = 0;
-
-        for (; ;) {
-
-            if ($paginCounter > 0) {
-                $dom = new DOMDocument;
-                $dom->preserveWhiteSpace = false;
-                if (!$dom->loadHTMLFile(self::URL . $paginUrls[$paginCounter - 1])) {
-                    throw new \Exception('Не удалось загрузить URL ' . $url);
-                }
-                $xpath = new DOMXPath($dom);
-            }
-
-            $items = "//div[contains(@class, 'bx_catalog_list_home')]/div/div[contains(@class, 'bx_catalog_item_container')]/div[contains(@class, 'bx_catalog_item_title')]/a";
-            $itemsXp = $xpath->query($items);
-
-            if ($itemsXp) {
-                $status = true;
-                foreach ($itemsXp as $itmXp) {
-                    if (!$itemHref = $itmXp->getAttribute('href')) {
-                        throw new \Exception('Не удалось получить href одного из элементов по URL ' . $url);
-                    }
-
-                    if (empty($node['children'][$itemHref])) {
-                        if (!$this->parseAnItem($node['cid'], $itemHref)) {
-                            $status = false;
-                            $node['children'][$itemHref] = [
-                                //'name' => $prod['name'],
-                                'href' => $itemHref,
-                                //'cid' => $elementCid,
-                                'type' => 'item',
-                                'status' => false,
-                            ];
-                        } else {
-                            $node['children'][$itemHref] = [
-                                //'name' => $prod['name'],
-                                'href' => $itemHref,
-                                //'cid' => $elementCid,
-                                'type' => 'item',
-                                'status' => true,
-                            ];
-                        }
-
-                        $this->saveStatusFileContent();
-                    }
-                }
-            }
-
-            if (count($paginUrls) > $paginCounter) {
-                ++$paginCounter;
-                continue;
-            }
-
-            break;
-        }
-
-        return $status;
-    }
-
     protected function parseAnItem($cid, $href, &$forName)
     {
         $url = self::URL . $href;
@@ -487,7 +411,7 @@ class GidroTop
 
         if ($nameXp = $xpath->query("//h1[contains(@class, 'page-name')]")) {
             if ($nameXp = $nameXp->item(0)) {
-                $prod['name'] = trim($nameXp->nodeValue);
+                $forName = $prod['name'] = trim($nameXp->nodeValue);
             }
         }
 
@@ -562,9 +486,11 @@ class GidroTop
         if (!$subCategs) {
             //throw new \Exception('Не найдены субкатегории. Href: ' . $hrefParent . '; cidParent: ' . $cidParent);
             echo "Время парсить товары. URL: $hrefParent <br>";
-            $this->parseItems($category, $hrefParent);
-            return;
+            return $this->parseItems($category, $hrefParent);
         }
+
+        $result = true;
+
         foreach ($subCategs as $cated) {
             //TODO: можно добавлять изображения категорий - как???
             $subCatHref = trim($cated->getAttribute('href'));
@@ -598,13 +524,17 @@ class GidroTop
                     $category['children'][$subCatHref]['status'] = true;
                     $this->saveStatusFileContent();
                 } else {
-                    $this->parseSubCategoryLabels($category['children'][$subCatHref], $subCatHref, $elementCid);
+                    if (!$this->parseSubCategoryLabels($category['children'][$subCatHref], $subCatHref, $elementCid)) {
+                        $result = false;
+                    }
                 }
             }
         }
+
+        return $result;
     }
 
-    protected function parseSubCategory_1_Labels($hrefParent, $cidParent)
+    /*protected function parseSubCategory_1_Labels($hrefParent, $cidParent)
     {
         $url = self::URL . $hrefParent;
 
@@ -662,5 +592,5 @@ class GidroTop
     protected function parseSubCategory_2_Labels(&$storeArr, $href, $cidParent)
     {
 
-    }
+    }*/
 }

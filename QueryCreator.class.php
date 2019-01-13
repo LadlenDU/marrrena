@@ -76,7 +76,7 @@ class QueryCreator
         $imageId = self::$to->setImage($url, $count);
         $this->params["form[images_data_by_id][$imageId][desc]"] = '';
         $this->params["form[images_data_by_id][$imageId][id]"] = $imageId;
-        $this->params["form[images_data_by_id][$imageId][main]"] = 1;
+        $this->params["form[images_data_by_id][$imageId][main]"] = ($count == 0 ? 1 : 0);
     }
 
     public function setName($name)

@@ -471,9 +471,16 @@ class GidroTop
         $prod['features'] = [];
         if ($featXp = $xpath->query("//table[@id='product-features']//tr[@itemprop='additionalProperty']")) {
             foreach ($featXp as $ft) {
-                $newFeature['name'] = $xpath->query("./td[contains(@class, 'name')]", $ft);
-                $newFeature['value'] = $xpath->query("./td[contains(@class, 'value')]", $ft);
-                $prod['features'][] = $newFeature;
+                $name = $xpath->query("./td[contains(@class, 'name')]", $ft);
+                if ($name = $name->item(0)) {
+                    $newFeature['name'] = trim($name->nodeValue);
+
+                    $value = $xpath->query("./td[contains(@class, 'value')]", $ft);
+                    if ($value = $value->item(0)) {
+                        $newFeature['value'] = trim($value->nodeValue);
+                        $prod['features'][] = $newFeature;
+                    }
+                }
             }
         }
 

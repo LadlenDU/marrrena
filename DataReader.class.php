@@ -247,7 +247,8 @@ class DataReader
             'ajax_q' => 1,
             'form[goods_id]' => 'NaN',
             //'form[images_ids][0]' => 'img_699860198617'
-            "form[images_ids][$count]" => $imageId,
+            //"form[images_ids][$count]" => $imageId,
+            "form[images_ids][0]" => $imageId,
         );
 
         for ($i = 0; $i < 2; $i++) {

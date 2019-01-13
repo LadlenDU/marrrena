@@ -120,25 +120,48 @@ class GidroTop
         return $data;
     }
 
-    protected function ifElemCompletedByHref($elem, $href, &$elementCid)
+    protected function ifElemCompletedByHref(&$elem, $href)
     {
         $href = trim($href);
 
-        foreach ($elem as $hrefKey => $item) {
+        if (!isset($elem[$href])) {
+            return 'not_found';
+        }
+
+        if (!empty($elem[$href]['children'])) {
+            $result = true;
+            foreach ($elem[$href]['children'] as $childHref => $childElem) {
+                if (!$this->ifElemCompletedByHref($elem[$href]['children'], $childHref)) {
+                    $result = false;
+                    break;
+                }
+            }
+
+            if (!isset($elem[$href]['status']) || $elem[$href]['status'] != $result) {
+                $elem[$href]['status'] = $result;
+                $this->saveStatusFileContent();
+            }
+
+            return $result;
+        } else {
+            return isset($elem[$href]['status']) ? $elem[$href]['status'] : false;
+        }
+
+        /*foreach ($elem as $hrefKey => $item) {
             if (trim($hrefKey) == $href) {
                 $elementCid = $item['cid'];
                 return isset($item['status']) ? $item['status'] : false;
             }
 
             if (!empty($item['children'])) {
-                $result = $this->ifElemCompletedByHref($item['children'], $href, $elementCid);
+                $result = $this->ifElemCompletedByHref($item['children'], $href);
                 if ($result !== 'not_found') {
                     return isset($result['status']) ? $result['status'] : false;
                 }
             }
         }
 
-        return 'not_found';
+        return 'not_found';*/
     }
 
     /*protected function ifElemExistsByHref($href, $root = false)
@@ -162,7 +185,7 @@ class GidroTop
         return false;
     }*/
 
-    /*protected function parseCategoryLabels()
+    protected function parseCategoryLabels()
     {
         $this->xpath = new DOMXPath($this->dom);
         $rootXPath = "//nav[contains(@class, 'catalog_body')]/ul/li/a";
@@ -172,12 +195,9 @@ class GidroTop
 
             foreach ($categoryRoot as $category) {
                 $categoryName = trim($category->textContent);
-
-                $currHref = trim($category->getAttribute('href'));
-
                 $href = trim($category->getAttribute('href'));
 
-                if (!isset($this->statusFileContent[$currHref])) {
+                if (!isset($this->statusFileContent[$href])) {
                     $elementCid = $this->dr->createSubelement($this->cid, $categoryName);
                     $this->statusFileContent[$href] = [
                         'name' => $categoryName,
@@ -189,22 +209,25 @@ class GidroTop
                     ];
                     $this->saveStatusFileContent();
                 } else {
-                    $srchRes = $this->ifElemCompletedByHref($this->statusFileContent, $href, $elementCid);
+                    $elementCid = $this->statusFileContent[$href]['cid'];
+                    $srchRes = $this->ifElemCompletedByHref($this->statusFileContent, $href);
                     if ($srchRes === 'not_found') {
                         throw new \Exception('HREF не найден: ' . $href);
                     }
                     if ($srchRes) {
+                        #$this->statusFileContent[$href]['status'] = true;
+                        #$this->saveStatusFileContent();
                         continue;
                     }
                 }
 
-                $this->parseSubCategoryLabels($this->statusFileContent, $href, $elementCid);
+                $this->parseSubCategoryLabels($this->statusFileContent[$href], $href, $elementCid);
 
             }
 
-            $this->parseItems();
+            //$this->parseItems();
         }
-    }*/
+    }
 
     protected function parseItems(&$category, $href)
     {
@@ -483,10 +506,12 @@ class GidroTop
         $xpath = new DOMXPath($dom);
 
         $subCategs = $xpath->query("//a[@class='sub-category-link']");
-        if (!$subCategs) {
+        if (!$subCategs->length) {
             //throw new \Exception('Не найдены субкатегории. Href: ' . $hrefParent . '; cidParent: ' . $cidParent);
-            echo "Время парсить товары. URL: $hrefParent <br>";
-            return $this->parseItems($category, $hrefParent);
+            echo "Время парсить товары. URL: $hrefParent <br>\n";
+            $category['status'] = $this->parseItems($category, $hrefParent);
+            $this->saveStatusFileContent();
+            return $category['status'];
         }
 
         $result = true;
@@ -516,17 +541,19 @@ class GidroTop
             }
 
             if (empty($category['children'][$subCatHref]['status'])) {
-                $srchRes = $this->ifElemCompletedByHref($category['children'], $subCatHref, $elementCid);
+                $srchRes = $this->ifElemCompletedByHref($category['children'], $subCatHref);
                 if ($srchRes === 'not_found') {
                     throw new \Exception('HREF не найден: ' . $subCatHref);
                 }
-                if ($srchRes) {
-                    $category['children'][$subCatHref]['status'] = true;
-                    $this->saveStatusFileContent();
-                } else {
+                if (!$srchRes) {
                     if (!$this->parseSubCategoryLabels($category['children'][$subCatHref], $subCatHref, $elementCid)) {
                         $result = false;
                     }
+                }
+
+                if (!isset($category['children'][$subCatHref]['status']) || $category['children'][$subCatHref]['status'] != $result) {
+                    $category['children'][$subCatHref]['status'] = $result;
+                    $this->saveStatusFileContent();
                 }
             }
         }

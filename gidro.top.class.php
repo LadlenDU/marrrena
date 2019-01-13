@@ -459,6 +459,7 @@ class GidroTop
 
         /*$prodExample = [
             'img_src' => '',
+            'img_src_additional' => [],
             'name' => '',
             'short_description' => '',
             'full_description' => '',
@@ -474,27 +475,35 @@ class GidroTop
 
         $xpath = new DOMXPath($dom);
 
-        if ($imgXp = $xpath->query("//span[contains(@class, 'bx_bigimages_aligner')]/img")) {
-            if ($imgXp = $imgXp->item(0)) {
-                $prod['img_src'] = trim($imgXp->getAttribute('src'));
+        if ($imgXp = $xpath->query("//figure[contains(@class, 'product-gallery')]/div[contains(@class, 'owl-item')]/a")) {
+            foreach ($imgXp as $keyIxp => $ixp) {
+                if ($keyIxp == 0) {
+                    $prod['img_src'] = trim($ixp->getAttribute('href'));
+                } else {
+                    $prod['img_src_additional'][] = trim($ixp->getAttribute('href'));
+                }
             }
         }
 
-        if ($nameXp = $xpath->query("//div[contains(@class, 'content-part')]/h1")) {
+        if ($nameXp = $xpath->query("//h1[contains(@class, 'page-name')]")) {
             if ($nameXp = $nameXp->item(0)) {
                 $prod['name'] = trim($nameXp->nodeValue);
             }
         }
 
-        if ($descrXp = $xpath->query("//div[contains(@id, 'tab1')]")) {
-            if ($descrXp = $descrXp->item(0)) {
-                $prod['short_description'] = trim($descrXp->nodeValue);
-                //$prod['full_description'] = $prod['short_description'] ;
-                //TODO: разобраться
-                $prod['full_description'] = $descrXp ? $descrXp->ownerDocument->saveHTML($descrXp) : '';
+        if ($shortDescrXp = $xpath->query("//div[contains(@class, 'product-sidebar-summary')]")) {
+            if ($shortDescrXp = $shortDescrXp->item(0)) {
+                $prod['short_description'] = trim($shortDescrXp->nodeValue);
             }
         }
 
+        if ($fullDescrXp = $xpath->query("//div[@id='pane-overview']")) {
+            if ($fullDescrXp = $fullDescrXp->item(0)) {
+                $prod['full_description'] = $fullDescrXp ? $fullDescrXp->ownerDocument->saveHTML($fullDescrXp) : trim($fullDescrXp->nodeValue);
+            }
+        }
+
+        //HERE stop
         if ($priceXp = $xpath->query("//div[contains(@class, 'item_current_price')]")) {
             if ($priceXp = $priceXp->item(0)) {
                 $prod['price'] = trim($priceXp->nodeValue);

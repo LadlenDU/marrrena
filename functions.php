@@ -30,8 +30,13 @@ function putProduct($prod, $urlRoot, $cid, $priceCorrectPercent, &$newItems, &$o
     try {
 
         $qc = new QueryCreator($cid, $searchType);
-        if ($prod['img_src']) {
+        if (!empty($prod['img_src'])) {
             $qc->setImage($urlRoot . $prod['img_src']);
+        }
+        if (!empty($prod['img_src_additional'])) {
+            foreach ($prod['img_src_additional'] as $aisKey => $addImgSrc) {
+                $qc->setImage($urlRoot . $addImgSrc, $aisKey + 1);
+            }
         }
         $qc->setName($prod['name']);
         $qc->setShortDescription($prod['short_description']);

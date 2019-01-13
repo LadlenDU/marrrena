@@ -232,7 +232,7 @@ class DataReader
         return 'img_' . $num;
     }
 
-    public function setImage($url)
+    public function setImage($url, $count = 0)
     {
         $imageId = $this->genImageId();
 
@@ -247,7 +247,7 @@ class DataReader
             'ajax_q' => 1,
             'form[goods_id]' => 'NaN',
             //'form[images_ids][0]' => 'img_699860198617'
-            'form[images_ids][0]' => $imageId,
+            "form[images_ids][$count]" => $imageId,
         );
 
         for ($i = 0; $i < 2; $i++) {
@@ -285,6 +285,60 @@ class DataReader
 
         return $pageDecoded['result'][$imageId]['image_id'];
     }
+
+/*    public function setAdditionalImage($url, $count)
+    {
+        $imageId = $this->genImageId();
+
+        $image = file_get_contents($url);
+        $tmpName = tempnam(sys_get_temp_dir(), 'tmp');
+        file_put_contents($tmpName, $image);
+
+        $fName = pathinfo($url, PATHINFO_BASENAME);
+
+        $cImage = new CURLFile($tmpName, mime_content_type($tmpName), $fName);
+        $data = array('form[ajax_images][]' => $cImage, //('@' . $tmpName),
+            'ajax_q' => 1,
+            'form[goods_id]' => 'NaN',
+            //'form[images_ids][0]' => 'img_699860198617'
+            "form[images_ids][$count]" => $imageId,
+        );
+
+        for ($i = 0; $i < 2; $i++) {
+
+            $ch = curl_init();
+
+            $this->setCommonCurlOpt($ch);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_URL, self::ROOT_ADMIN_URL . "/admin/store_goods_img_upload");
+
+            $result = curl_exec($ch);
+
+            unset($tmpName);
+
+            if (!$result) {
+                $info = $this->getCurlErrorInfo($ch);
+                throw new Exception("Can't upload image. Info:\n$info\n");
+            }
+
+            curl_close($ch);
+
+            $pageDecoded = json_decode($result, true);
+
+            if ($pageDecoded['result'][$imageId]['image_id']) {
+                break;
+            } else {
+                if ($pageDecoded['status'] == 'reload') {
+                    $this->login();
+                } else {
+                    throw new Exception("Can't get image_id from\n>>>>>\n$result\n<<<<<\n");
+                }
+            }
+        }
+
+        return $pageDecoded['result'][$imageId]['image_id'];
+    }*/
 
     public static function genRndKey($length = 8)
     {

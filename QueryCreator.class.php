@@ -71,9 +71,9 @@ class QueryCreator
         return $num;
     }
 
-    public function setImage($url)
+    public function setImage($url, $count = 0)
     {
-        $imageId = self::$to->setImage($url);
+        $imageId = self::$to->setImage($url, $count);
         $this->params["form[images_data_by_id][$imageId][desc]"] = '';
         $this->params["form[images_data_by_id][$imageId][id]"] = $imageId;
         $this->params["form[images_data_by_id][$imageId][main]"] = 1;

@@ -137,7 +137,9 @@ class GidroTop
                 }
             }
 
-            if (!isset($elem[$href]['status']) || $elem[$href]['status'] != $result) {
+            if (!isset($elem[$href]['status']) || ($elem[$href]['status'] != $result && !$result)) {
+                //TODO: здесь этого явно делать не стоит т. к. дочерние поля могут быть просто недозаполнены
+                //однако подстрахуемся и сделаем откат до false если надо
                 $elem[$href]['status'] = $result;
                 $this->saveStatusFileContent();
             }
@@ -241,7 +243,7 @@ class GidroTop
 
         $urlList[] = $href;
 
-        if ($lastPage = $xpath->query("//ul[contains(@class, 'pagination')]/li[last()]/preceding::li[1]")) {
+        if ($lastPage = $xpath->query("//ul[contains(@class, 'pagination')]/li[last()]/preceding::li[1]/a")) {
             if ($lastPage = $lastPage->item(0)) {
                 $hrefPage = trim($lastPage->getAttribute('href'));
                 $hrefPage = explode('=', $hrefPage);
@@ -440,16 +442,33 @@ class GidroTop
             }
         }
 
+        $prod['short_description'] = '';
+        $prod['full_description'] = '';
+
         if ($shortDescrXp = $xpath->query("//div[contains(@class, 'product-sidebar-summary')]")) {
             if ($shortDescrXp = $shortDescrXp->item(0)) {
                 $prod['short_description'] = trim($shortDescrXp->nodeValue);
+            } else {
+                $stopper = 1;
             }
+        } else {
+            $stopper = 1;
         }
 
+        $fullDescriptionPlain = '';
         if ($fullDescrXp = $xpath->query("//div[@id='pane-overview']/*")) {
             if ($fullDescrXp = $fullDescrXp->item(0)) {
-                $prod['full_description'] = $fullDescrXp ? $fullDescrXp->ownerDocument->saveHTML($fullDescrXp) : trim($fullDescrXp->nodeValue);
+                $fullDescriptionPlain = trim($fullDescrXp->nodeValue);
+                $prod['full_description'] = $fullDescrXp ? $fullDescrXp->ownerDocument->saveHTML($fullDescrXp) : $fullDescriptionPlain;
+            } else {
+                $stopper = 1;
             }
+        } else {
+            $stopper = 1;
+        }
+
+        if (empty($prod['short_description'])) {
+            $prod['short_description'] = $fullDescriptionPlain;
         }
 
         //HERE stop
@@ -464,7 +483,6 @@ class GidroTop
                 $prod['price'] = str_replace('р', '', $prod['price']);
                 $prod['price'] = str_replace('Р.', '', $prod['price']);
                 $prod['price'] = str_replace('Р', '', $prod['price']);
-
             }
         }
 

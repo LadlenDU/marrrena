@@ -504,9 +504,9 @@ class GidroTop
         }
 
         //HERE stop
-        if ($priceXp = $xpath->query("//div[contains(@class, 'item_current_price')]")) {
+        if ($priceXp = $xpath->query("//form[@id='cart-form']/div[contains(@class, 'purchase')]/div[contains(@class, 'add2cart')]/div[contains(@class, 'price_holder')]/div[contains(@span, 'price')]")) {
             if ($priceXp = $priceXp->item(0)) {
-                $prod['price'] = trim($priceXp->nodeValue);
+                $prod['price'] = trim($priceXp->getAttribute('data-price'));
                 $prod['price'] = str_replace('руб.', '', $prod['price']);
                 $prod['price'] = str_replace('руб', '', $prod['price']);
                 $prod['price'] = str_replace('р.', '', $prod['price']);
@@ -515,29 +515,18 @@ class GidroTop
         }
 
         $prod['features'] = [];
-        if ($featXp = $xpath->query("//div[contains(@id, 'tab6')]/dl/*")) {
+        if ($featXp = $xpath->query("//table[@id='product-features']//tr[@itemprop='additionalProperty']")) {
             foreach ($featXp as $ft) {
-                if ($ft->tagName == 'dt') {
-                    $newFeature['name'] = trim($ft->nodeValue);
-                } elseif ($ft->tagName == 'dd') {
-                    $newFeature['value'] = trim($ft->nodeValue);
-
-                    if (isset($newFeature['name'])) {
-                        $upperName = mb_strtoupper($newFeature['name'], 'utf-8');
-                        if ($upperName == 'АРТИКУЛ ПРОИЗВОДИТЕЛЯ') {
-                            $prod['vendor_code'] = $newFeature['value'];
-                        }
-                    }
-
-                    $prod['features'][] = $newFeature;
-                    $newFeature = [];
-                }
+                $newFeature['name'] = $xpath->query("./td[contains(@class, 'name')]", $ft);
+                $newFeature['value'] = $xpath->query("./td[contains(@class, 'value')]", $ft);
+                $prod['features'][] = $newFeature;
             }
         }
 
-        if (!isset($prod['vendor_code'])) {
+        // Аритикулы на gidro-top.ru какие-то странные - будем делать свои
+        //if (!isset($prod['vendor_code'])) {
             $prod['vendor_code'] = '';
-        }
+        //}
 
         $result = putProduct($prod, self::URL, $cid, $this->percentAddPrice, $newItems, $oldItems, $wrongItems, $this->searchType);
 

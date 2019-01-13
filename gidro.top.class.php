@@ -239,17 +239,19 @@ class GidroTop
 
         $xpath = new DOMXPath($dom);
 
-        $urlList[] = $url;
+        $urlList[] = $href;
 
         if ($lastPage = $xpath->query("//ul[contains(@class, 'pagination')]/li[last()]/preceding::li[1]")) {
-            $hrefPage = trim($lastPage->getAttribute('href'));
-            $hrefPage = explode('=', $hrefPage);
-            if (count($hrefPage) != 2) {
-                throw new \Exception('Неверный формат pagination-ссылки. URL: ' . $url);
-            }
-            $pages = (int)$hrefPage[1];
-            for ($i = 2; $i <= $pages; ++$i) {
-                $urlList[] = $hrefPage[0] . '=' . $i;
+            if ($lastPage = $lastPage->item(0)) {
+                $hrefPage = trim($lastPage->getAttribute('href'));
+                $hrefPage = explode('=', $hrefPage);
+                if (count($hrefPage) != 2) {
+                    throw new \Exception('Неверный формат pagination-ссылки. URL: ' . $url);
+                }
+                $pages = (int)$hrefPage[1];
+                for ($i = 2; $i <= $pages; ++$i) {
+                    $urlList[] = $hrefPage[0] . '=' . $i;
+                }
             }
         }
 

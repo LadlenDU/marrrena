@@ -279,7 +279,7 @@ class DataReader
                 if ($pageDecoded['status'] == 'reload') {
                     $this->login();
                 } else {
-                    throw new Exception("Can't get image_id from\n>>>>>\n$result\n<<<<<\n");
+                    throw new Exception("Can't get image_id; URL: $url\nINFO:\n>>>>>\n$result\n<<<<<\n");
                 }
             }
         }

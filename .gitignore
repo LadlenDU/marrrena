@@ -3,3 +3,4 @@ config.php
 cookies/storeland*
 logs
 morena.process.pid
+vendor

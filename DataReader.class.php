@@ -537,6 +537,28 @@ class DataReader
         return true;
     }
 
+    public function getPage($url)
+    {
+        $ch = curl_init();
+
+        $this->setCommonCurlOpt($ch);
+        curl_setopt($ch, CURLOPT_ENCODING, 'windows-1251');
+        curl_setopt($ch, CURLOPT_POST, false);
+        curl_setopt($ch, CURLOPT_URL, $url);
+
+        $result = curl_exec($ch);
+
+        if (!$result) {
+            $info = $this->getCurlErrorInfo($ch);
+            curl_close($ch);
+            throw new Exception("Can't get page. Info:\n$info\n");
+        }
+
+        curl_close($ch);
+
+        return $result;
+    }
+
     public function getCatalogJs()
     {
         $ch = curl_init();

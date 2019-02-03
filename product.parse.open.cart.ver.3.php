@@ -47,11 +47,13 @@ foreach ($titleScheme as $sheetName => $headerInfo) {
     $importFile->setSheetHeader($sheetName, $headerInfo);
 }
 
-$importFile->saveToFile('test.xlsx');
-exit;
+#$importFile->saveToFile('test.xlsx');
+#exit;
 
 function parseElems($elems, $parent_id = 0)
 {
+    global $importFile;
+
     foreach ($elems as $e) {
         if (!empty($e['children'])) {
             parseElems($e['children'], $e['attributes']['id']);
@@ -68,22 +70,36 @@ function parseElems($elems, $parent_id = 0)
 
         $csvRawUtf8 = mb_convert_encoding($csvRaw, 'utf-8', 'windows-1251');
 
-        $csvLines = explode("\n", $csvRawUtf8);
-        $csvArray = [];
-        foreach ($csvLines as $ln) {
-            $csvArray[] = str_getcsv($ln, ';');
-            setProductsPage();
+        //$csvArray = [];
+
+        $file = fopen('data://text/plain,' . $csvRawUtf8, 'r');
+        while (($line = fgetcsv($file, null, ';','"')) !== FALSE) {
+            //$line is an array of the csv elements
+            //$csvArray[] = $line;
+            //setProductsPageLine($line);
+            $importFile->addSheetRow('Products', $line);
         }
-        //print_r($csvArray);
+        fclose($file);
+
+        /*$csvLines = explode("\n", $csvRawUtf8);
+
+        foreach ($csvLines as $ln) {
+            $csvArray[] = str_getcsv($ln, ';', '"', '"');
+            //setProductsPage();
+        }*/
+        //exit;
+        //print_r($csvArray);exit;
     }
 }
 
 parseElems($dirStructure['children']);
 
-$fp = fopen('file_prod.csv', 'w');
+$importFile->saveToFile('test.xlsx');
+
+/*$fp = fopen('file_prod.csv', 'w');
 
 foreach ($csv as $fields) {
     fputcsv($fp, $fields);
 }
 
-fclose($fp);
+fclose($fp);*/

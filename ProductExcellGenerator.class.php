@@ -14,6 +14,9 @@ class ProductExcellGenerator
     public $spreadsheet;
     public $sheets = [];
 
+    /** @var array номер текущей строки для каждого листа по названию */
+    public $currentRows = [];
+
     public function __construct($firstSheetName)
     {
         $this->spreadsheet = new Spreadsheet();
@@ -35,6 +38,12 @@ class ProductExcellGenerator
     public function setSheetHeader($sheetName, array $data)
     {
         $this->setSheetRow($sheetName, 1, $data);
+        $this->currentRows[$sheetName] = 2;
+    }
+
+    public function addSheetRow($sheetName, array $data)
+    {
+        $this->setSheetRow($sheetName, $this->currentRows[$sheetName]++, $data);
     }
 
     public function setSheetRow($sheetName, $row, array $data)

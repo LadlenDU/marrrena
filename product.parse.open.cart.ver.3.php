@@ -38,11 +38,13 @@ $firstCircle = true;
 foreach ($titleScheme as $sheetName => $headerInfo) {
     if ($firstCircle) {
         $importFile = new ProductExcellGenerator($sheetName);
+        $importFile->setSheetHeader($sheetName, $headerInfo);
         $firstCircle = false;
         continue;
     }
 
     $importFile->addSheet($sheetName);
+    $importFile->setSheetHeader($sheetName, $headerInfo);
 }
 
 $importFile->saveToFile('test.xlsx');

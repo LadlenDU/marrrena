@@ -39,12 +39,12 @@ class ProductExcellGenerator
 
     public function setSheetRow($sheetName, $row, array $data)
     {
-        if (isset($this->sheets[$sheetName])) {
+        if (!isset($this->sheets[$sheetName])) {
             throw new \Exception('Такой страницы нет: ' . $sheetName);
         }
 
         foreach ($data as $columnIndex => $value) {
-            $this->sheets[$sheetName]->setCellValueByColumnAndRow($columnIndex, $row, $value);
+            $this->sheets[$sheetName]->setCellValueByColumnAndRow($columnIndex + 1, $row, $value);
         }
     }
 

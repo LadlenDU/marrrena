@@ -72,12 +72,18 @@ function parseElems($elems, $parent_id = 0)
 
         //$csvArray = [];
 
+        $firstCycle = true;
+
         $file = fopen('data://text/plain,' . $csvRawUtf8, 'r');
         while (($line = fgetcsv($file, null, ';','"')) !== FALSE) {
+            if ($firstCycle) {
+                $firstCycle = false;
+                continue;
+            }
             //$line is an array of the csv elements
             //$csvArray[] = $line;
-            //setProductsPageLine($line);
-            $importFile->addSheetRow('Products', $line);
+            setProductsPageLine($line, $e['attributes']['id']);
+            //$importFile->addSheetRow('Products', $line);
         }
         fclose($file);
 
@@ -95,6 +101,71 @@ function parseElems($elems, $parent_id = 0)
 parseElems($dirStructure['children']);
 
 $importFile->saveToFile('test.xlsx');
+
+function setProductsPageLine($line, $categoryId)
+{
+    global $importFile;
+
+    static $currentProductId = 1;
+
+    $dateAdded = generateProductDateAdded();
+
+    $importLine = [
+        'product_id' => $currentProductId++,
+        'name(en-gb)' => $line[0],
+        'categories' => $categoryId,
+        'sku' => $line[4],  // Артикул ???
+        'upc' => '',
+        'ean' => '',
+        'jan' => '',
+        'isbn' => '',
+        'mpn' => '',
+        'location' => '',       //TODO проверить (из свойств)
+        'quantity' => 1,
+        'model' => '',          //TODO (из свойств)
+        'manufacturer' => '',   //TODO (из свойств)
+        'image_name',
+        'shipping' => 'yes',    // подтвердил Ventfabrika
+        'price' => $line[5],
+        'points' => 0,          //TODO: wtf?
+        'date_added' => $dateAdded,
+        'date_modified' => $dateAdded,
+        'date_available' => substr($dateAdded, 0, 10),
+        'weight' => 0,          //TODO (из свойств)
+        'weight_unit' => 'kg',  //TODO (из свойств)
+        'length' => 0,          //TODO (из свойств)
+        'width' => 0,           //TODO (из свойств)
+        'height' => 0,          //TODO (из свойств)
+        'length_unit' => 'cm',  //TODO (из свойств)
+        'status',
+        'tax_class_id',
+        'description(en-gb)',
+        'meta_title(en-gb)',
+        'meta_description(en-gb)',
+        'meta_keywords(en-gb)',
+        'stock_status_id',
+        'store_ids',
+        'layout',
+        'related_ids',
+        'tags(en-gb)',
+        'sort_order',
+        'subtract',
+        'minimum',
+    ];
+
+    $importFile->addSheetRow('Products', $importLine);
+}
+
+function generateProductDateAdded()
+{
+    $month = str_pad(rand(1, 12), 2, '0', STR_PAD_LEFT);
+    $day = str_pad(rand(1, 27), 2, '0', STR_PAD_LEFT);
+    $hour = str_pad(rand(0, 23), 2, '0', STR_PAD_LEFT);
+    $minute = str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT);
+    $sec = str_pad(rand(0, 59), 2, '0', STR_PAD_LEFT);
+
+    return date('201' . rand(7, 8) . "-$month-$day $hour:$minute:$sec");
+}
 
 /*$fp = fopen('file_prod.csv', 'w');
 

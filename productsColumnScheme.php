@@ -47,4 +47,76 @@ $titleScheme['Products'] = [
     'minimum',
 ];
 
+$titleScheme['AdditionalImages'] = [
+    'product_id',
+    'image',
+    'sort_order',
+];
+
+$titleScheme['Specials'] = [
+    'product_id',
+    'customer_group',
+    'priority',
+    'price',
+    'date_start',
+    'date_end',
+];
+
+$titleScheme['Discounts'] = [
+    'product_id',
+    'customer_group',
+    'quantity',
+    'priority',
+    'price',
+    'date_start',
+    'date_end',
+];
+
+$titleScheme['Rewards'] = [
+    'product_id',
+    'customer_group',
+    'points',
+];
+
+$titleScheme['ProductOptions'] = [
+    'product_id',
+    'option',
+    'default_option_value',
+    'required',
+];
+
+$titleScheme['ProductOptionValues'] = [
+    'product_id',
+    'option',
+    'option_value',
+    'quantity',
+    'subtract',
+    'price',
+    'price_prefix',
+    'points',
+    'points_prefix',
+    'weight',
+    'weight_prefix',
+];
+
+$titleScheme['ProductAttributes'] = [
+    'product_id',
+    'attribute_group',
+    'attribute',
+    'text(en-gb)',
+];
+
+$titleScheme['ProductFilters'] = [
+    'product_id',
+    'filter_group',
+    'filter',
+];
+
+$titleScheme['ProductSEOKeywords'] = [
+    'product_id',
+    'store_id',
+    'keyword(en-gb)',
+];
+
+
 return $titleScheme;

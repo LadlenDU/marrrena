@@ -30,49 +30,23 @@ exit;*/
 require_once 'DataReader.class.php';
 
 $dirStructure = include 'dirStructure.php';
+$titleScheme = include 'productsColumnScheme.php';
 
-$titleScheme['Products'] = [
-    'product_id',
-    'name(en-gb)',
-    'categories',
-    'sku',
-    'upc',
-    'ean',
-    'jan',
-    'isbn',
-    'mpn',
-    'location',
-    'quantity',
-    'model',
-    'manufacturer',
-    'image_name',
-    'shipping',
-    'price',
-    'points',
-    'date_added',
-    'date_modified',
-    'date_available',
-    'weight',
-    'weight_unit',
-    'length',
-    'width',
-    'height',
-    'length_unit',
-    'status',
-    'tax_class_id',
-    'description(en-gb)',
-    'meta_title(en-gb)',
-    'meta_description(en-gb)',
-    'meta_keywords(en-gb)',
-    'stock_status_id',
-    'store_ids',
-    'layout',
-    'related_ids',
-    'tags(en-gb)',
-    'sort_order',
-    'subtract',
-    'minimum',
-];
+$importFile = false;
+
+$firstCircle = true;
+foreach ($titleScheme as $sheetName => $headerInfo) {
+    if ($firstCircle) {
+        $importFile = new ProductExcellGenerator($sheetName);
+        $firstCircle = false;
+        continue;
+    }
+
+    $importFile->addSheet($sheetName);
+}
+
+$importFile->saveToFile('test.xlsx');
+exit;
 
 function parseElems($elems, $parent_id = 0)
 {

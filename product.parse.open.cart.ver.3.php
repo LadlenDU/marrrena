@@ -1,20 +1,39 @@
 <?php
+
+/**
+ * Для генерации xlsx таблиц продуктов с сайта storeland.ru
+ *
+ */
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require 'vendor/autoload.php';
 
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+require_once 'ProductExcellGenerator.class.php';
+
+/*$spreadsheet = new Spreadsheet();
+//$spreadsheet->setActiveSheetIndex();
+$sheet = $spreadsheet->getActiveSheet();
+$sheet->setCellValue('A1', 'Hello World !');
+$sheet->setTitle('MyTitle');
+
+$newSheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, 'NewTitle');
+$newSheet->setCellValue('A2', '+++++++++++++');
+
+$spreadsheet->addSheet($newSheet);
+
+$writer = new Xlsx($spreadsheet);
+$writer->save('hello_world.xlsx');
+exit;*/
 
 require_once 'DataReader.class.php';
 
 $dirStructure = include 'dirStructure.php';
 
-$csv[] = [
+$titleScheme['Products'] = [
     'product_id',
     'name(en-gb)',
-    'name(ru-ru)',
     'categories',
     'sku',
     'upc',
@@ -41,21 +60,15 @@ $csv[] = [
     'length_unit',
     'status',
     'tax_class_id',
-    'seo_keyword',
     'description(en-gb)',
-    'description(ru-ru)',
     'meta_title(en-gb)',
-    'meta_title(ru-ru)',
     'meta_description(en-gb)',
-    'meta_description(ru-ru)',
     'meta_keywords(en-gb)',
-    'meta_keywords(ru-ru)',
     'stock_status_id',
     'store_ids',
     'layout',
     'related_ids',
     'tags(en-gb)',
-    'tags(ru-ru)',
     'sort_order',
     'subtract',
     'minimum',
@@ -63,12 +76,7 @@ $csv[] = [
 
 function parseElems($elems, $parent_id = 0)
 {
-    global $csv;
-
-    //static $categId = 1;
-
     foreach ($elems as $e) {
-        //https://x218025.storeland.ru/admin/store_goods_export/cid_5409469
         if (!empty($e['children'])) {
             parseElems($e['children'], $e['attributes']['id']);
             continue;
@@ -88,59 +96,9 @@ function parseElems($elems, $parent_id = 0)
         $csvArray = [];
         foreach ($csvLines as $ln) {
             $csvArray[] = str_getcsv($ln, ';');
+            setProductsPage();
         }
         //print_r($csvArray);
-
-
-        $csv[] = [
-            '' => '', //'product_id',
-            '' => '', //'name(en-gb)',
-            '' => '', //'name(ru-ru)',
-            '' => '', //'categories',
-            '' => '', //'sku',
-            '' => '', //'upc',
-            '' => '', //'ean',
-            '' => '', //'jan',
-            '' => '', //'isbn',
-            '' => '', //'mpn',
-            '' => '', //'location',
-            '' => '', //'quantity',
-            '' => '', //'model',
-            '' => '', //'manufacturer',
-            '' => '', //'image_name',
-            '' => '', //'shipping',
-            '' => '', //'price',
-            '' => '', //'points',
-            '' => '', //'date_added',
-            '' => '', //'date_modified',
-            '' => '', //'date_available',
-            '' => '', //'weight',
-            '' => '', //'weight_unit',
-            '' => '', //'length',
-            '' => '', //'width',
-            '' => '', //'height',
-            '' => '', //'length_unit',
-            '' => '', //'status',
-            '' => '', //'tax_class_id',
-            '' => '', //'seo_keyword',
-            '' => '', //'description(en-gb)',
-            '' => '', //'description(ru-ru)',
-            '' => '', //'meta_title(en-gb)',
-            '' => '', //'meta_title(ru-ru)',
-            '' => '', //'meta_description(en-gb)',
-            '' => '', //'meta_description(ru-ru)',
-            '' => '', //'meta_keywords(en-gb)',
-            '' => '', //'meta_keywords(ru-ru)',
-            '' => '', //'stock_status_id',
-            '' => '', //'store_ids',
-            '' => '', //'layout',
-            '' => '', //'related_ids',
-            '' => '', //'tags(en-gb)',
-            '' => '', //'tags(ru-ru)',
-            '' => '', //'sort_order',
-            '' => '', //'subtract',
-            '' => '', //'minimum',
-        ];
     }
 }
 

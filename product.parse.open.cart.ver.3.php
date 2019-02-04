@@ -101,13 +101,26 @@ parseElems($dirStructure['children']);
 
 $importFile->saveToFile('test.xlsx');
 
+function setProductSEOKeywordsPageLine($line, $productId)
+{
+    global $importFile;
+
+    $importLine = [
+        'product_id' => $productId,
+        'store_id' => 0,                // wtf?
+        'keyword(en-gb)' => $line[16],  //TODO: похоже подходит, но может быть не совсем верно
+    ];
+
+    $importFile->addSheetRow('ProductSEOKeywords', $importLine);
+}
+
 function setProductAttributesPageLine($line, $productId)
 {
     global $importFile;
 
     $lineLength = count($line);
     for ($i = 20; $i < $lineLength; $i += 2) {
-        $attribute = $line[$i + 1];
+        $attribute = $line[$i];
         $text = $line[$i + 1];
         $importLine = [
             'product_id' => $productId,

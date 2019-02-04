@@ -85,7 +85,11 @@ function parseElems($elems, $parent_id = 0)
             //setSpecialsPageLine($line);   // скидки
             //setDiscountsPageLine($line);
             //setRewardsPageLine($line);
-            setProductOptionsPageLine($line, $productId);
+            //setProductOptionsPageLine($line, $productId);
+            //setProductOptionsValuesPageLine($line, $productId);
+            setProductAttributesPageLine($line, $productId);
+            //setProductFiltersPageLine($line, $productId);
+            setProductSEOKeywordsPageLine($line, $productId);
         }
         fclose($file);
         $importFile->saveToFile('test.xlsx');
@@ -97,18 +101,22 @@ parseElems($dirStructure['children']);
 
 $importFile->saveToFile('test.xlsx');
 
-function setProductOptionsPageLine($line, $productId)
+function setProductAttributesPageLine($line, $productId)
 {
     global $importFile;
 
-    $importLine = [
-        'product_id' => $productId,
-        'option' => '',
-        'default_option_value',
-        'required' => 'true',
-    ];
-
-    $importFile->addSheetRow('ProductOptions', $importLine);
+    $lineLength = count($line);
+    for ($i = 20; $i < $lineLength; $i += 2) {
+        $attribute = $line[$i + 1];
+        $text = $line[$i + 1];
+        $importLine = [
+            'product_id' => $productId,
+            'attribute_group' => '',
+            'attribute' => $attribute,
+            'text(en-gb)' => $text,
+        ];
+        $importFile->addSheetRow('ProductAttributes', $importLine);
+    }
 }
 
 function setAdditionalImagesPageLine($line, $productId)
@@ -160,12 +168,12 @@ function setProductsPageLine($line, $categoryId)
         'jan' => '',
         'isbn' => '',
         'mpn' => '',
-        'location' => '',       //TODO проверить (из свойств)
+        'location' => '',               //TODO проверить (из свойств)
         'quantity' => 1,
-        'model' => '',          //TODO (из свойств) или $line[4] - артикул
-        'manufacturer' => '',   //TODO (из свойств)
+        'model' => $line[18],           //TODO (из свойств) или $line[4] - артикул
+        'manufacturer' => '',           //TODO (из свойств)
         'image_name' => $imageName,
-        'shipping' => 'yes',    // подтвердил Ventfabrika
+        'shipping' => 'yes',            // подтвердил Ventfabrika
         'price' => formatRawDecimal($line[5]),
         'points' => 0,          //TODO: wtf?
         'date_added' => $dateAdded,

@@ -66,11 +66,8 @@ function parseElems($elems, $parent_id = 0)
         $url = 'https://x218025.storeland.ru/admin/store_goods_export/' . urlencode('cid_' . $e['attributes']['id']);
 
         $csvRaw = $dr->getPage($url);
-        //file_put_contents('ttttt.csv', $csvRaw);exit;
 
         $csvRawUtf8 = mb_convert_encoding($csvRaw, 'utf-8', 'windows-1251');
-
-        //$csvArray = [];
 
         $firstCycle = true;
 
@@ -80,29 +77,64 @@ function parseElems($elems, $parent_id = 0)
                 $firstCycle = false;
                 continue;
             }
-            //$line is an array of the csv elements
-            //$csvArray[] = $line;
-            setProductsPageLine($line, $e['attributes']['id']);
-            //$importFile->addSheetRow('Products', $line);
+
+            $line = array_map('trim', $line);
+
+            $productId = setProductsPageLine($line, $e['attributes']['id']);
+            setAdditionalImagesPageLine($line, $productId);
+            //setSpecialsPageLine($line);   // скидки
+            //setDiscountsPageLine($line);
+            //setRewardsPageLine($line);
+            setProductOptionsPageLine($line, $productId);
         }
         fclose($file);
         $importFile->saveToFile('test.xlsx');
         exit;
-
-        /*$csvLines = explode("\n", $csvRawUtf8);
-
-        foreach ($csvLines as $ln) {
-            $csvArray[] = str_getcsv($ln, ';', '"', '"');
-            //setProductsPage();
-        }*/
-        //exit;
-        //print_r($csvArray);exit;
     }
 }
 
 parseElems($dirStructure['children']);
 
 $importFile->saveToFile('test.xlsx');
+
+function setProductOptionsPageLine($line, $productId)
+{
+    global $importFile;
+
+    $importLine = [
+        'product_id' => $productId,
+        'option' => '',
+        'default_option_value',
+        'required' => 'true',
+    ];
+
+    $importFile->addSheetRow('ProductOptions', $importLine);
+}
+
+function setAdditionalImagesPageLine($line, $productId)
+{
+    global $importFile;
+
+    $images = explode("\n", $line[10]);
+    if (count($images) < 2) {
+        return;
+    }
+
+    unset($images[0]);
+    $images = array_map('trim', $images);
+
+    foreach ($images as $img) {
+        $imageName = prepareImageGetPath($img);
+
+        $importLine = [
+            'product_id' => $productId,
+            'image' => $imageName,
+            'sort_order' => 0,
+        ];
+
+        $importFile->addSheetRow('AdditionalImages', $importLine);
+    }
+}
 
 function setProductsPageLine($line, $categoryId)
 {
@@ -116,12 +148,10 @@ function setProductsPageLine($line, $categoryId)
         $stopper = 1;
     }
 
-    $line = array_map('trim', $line);
-
     $imageName = prepareImageGetPath($line[10] ? trim(explode("\n", $line[10])[0]) : '');
 
     $importLine = [
-        'product_id' => $currentProductId++,
+        'product_id' => $currentProductId,
         'name(en-gb)' => $line[0],
         'categories' => $categoryId,
         'sku' => $line[4],  // Артикул ???
@@ -150,7 +180,7 @@ function setProductsPageLine($line, $categoryId)
         'status' => 'true',
         'tax_class_id' => 9,    //TODO: также может быть 100 - wtf
         'description(en-gb)' => cleanDescription($line[2]),   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
-        'meta_title(en-gb)' => $line[0],    //TODO: обдумать правильно ли это
+        'meta_title(en-gb)' => ($line[13] ? $line[13] : $line[0]),    //TODO: обдумать правильно ли это
         'meta_description(en-gb)' => cleanDescription($line[1]),  //TODO: обдумать правильно ли это (это короткое описание)
         'meta_keywords(en-gb)' => '',
         'stock_status_id' => 5,     //TODO: wtf (известные значения - 5,6,7,8)
@@ -164,6 +194,8 @@ function setProductsPageLine($line, $categoryId)
     ];
 
     $importFile->addSheetRow('Products', $importLine);
+
+    return $currentProductId++;
 }
 
 function cleanDescription($text)

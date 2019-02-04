@@ -121,14 +121,16 @@ function setProductAttributesPageLine($line, $productId)
     $lineLength = count($line);
     for ($i = 20; $i < $lineLength; $i += 2) {
         $attribute = $line[$i];
-        $text = $line[$i + 1];
-        $importLine = [
-            'product_id' => $productId,
-            'attribute_group' => 'Общая',
-            'attribute' => $attribute,
-            'text(en-gb)' => $text,
-        ];
-        $importFile->addSheetRow('ProductAttributes', $importLine);
+        if (!productAttributeIsUsed($attribute)) {
+            $text = $line[$i + 1];
+            $importLine = [
+                'product_id' => $productId,
+                'attribute_group' => 'Общая',
+                'attribute' => $attribute,
+                'text(en-gb)' => $text,
+            ];
+            $importFile->addSheetRow('ProductAttributes', $importLine);
+        }
     }
 }
 
@@ -175,6 +177,11 @@ function setProductsPageLine($line, $categoryId)
         $weightUnit = 'kg';
     }
 
+    if (!$lengthUnit = getProductAttribute($line, 'length', true)) {
+        $lengthUnit = 'cm';
+    }
+
+
     $importLine = [
         'product_id' => $currentProductId,
         'name(en-gb)' => $line[0],
@@ -198,10 +205,10 @@ function setProductsPageLine($line, $categoryId)
         'date_available' => substr($dateAdded, 0, 10),
         'weight' => getProductAttribute($line, 'weight'),
         'weight_unit' => $weightUnit,
-        'length' => 0,          //TODO (из свойств)
-        'width' => 0,           //TODO (из свойств)
-        'height' => 0,          //TODO (из свойств)
-        'length_unit' => 'cm',  //TODO (из свойств)
+        'length' => getProductAttribute($line, 'length'),
+        'width' => getProductAttribute($line, 'width'),
+        'height' => getProductAttribute($line, 'height'),
+        'length_unit' => $lengthUnit,
         'status' => 'true',
         'tax_class_id' => 9,    //TODO: также может быть 100 - wtf
         'description(en-gb)' => cleanDescription($line[2]),   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
@@ -238,14 +245,80 @@ $attributesUsedInProductInfo = [
         'страна производитель',
         'страна производства',
     ],
-    '' => [
-        '',
+    'weight' => [
+        'вес',
+        'вес товара',
+        'вес товара (нетто)',   //TODO: обдумать верно ли
+    ],
+    'length' => [
+        'длина',
+        'длина товара',
+    ],
+    'width' => [
+        'ширина',
+        'ширина товара',
+    ],
+    'height' => [
+        'высота',
+        'высота товара',
     ],
 ];
 
-function getProductAttribute($line, $name)
+function extractUnit($value)
 {
-    return 1;
+    $value = formatRawDecimal($value);
+    return preg_replace('/[0-9\.]/', '', $value);
+}
+
+function getProductAttribute($line, $name, $getUnit = false)
+{
+    global $attributesUsedInProductInfo;
+
+    if (!isset($attributesUsedInProductInfo[$name])) {
+        throw new \Exception('Нет такого атрибута: ' . $name);
+    }
+
+    $numericNames = ['weight', 'length', 'width', 'height'];
+
+    $lineLength = count($line);
+    for ($i = 20; $i < $lineLength; $i += 2) {
+        $nameIsFound = false;
+        foreach ($attributesUsedInProductInfo[$name] as $elem) {
+            if (in_array($line[$i], $elem)) {
+                $nameIsFound = true;
+                break;
+            }
+        }
+
+        if ($nameIsFound) {
+            if ($getUnit) {
+                return extractUnit($line[$i + 1]);
+            } elseif (in_array($name, $numericNames)) {
+                $value = formatRawDecimal($line[$i + 1]);
+                return preg_replace('/[^0-9\.]/u', '', $value);
+            } else {
+                return $line[$i + 1];
+            }
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Был ли атрибут $name уже использован во вкладке Products
+ */
+function productAttributeIsUsed($name)
+{
+    global $attributesUsedInProductInfo;
+
+    foreach ($attributesUsedInProductInfo[$name] as $elem) {
+        if (in_array($name, $elem)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function cleanDescription($text)

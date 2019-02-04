@@ -118,7 +118,7 @@ function setProductsPageLine($line, $categoryId)
 
     $line = array_map('trim', $line);
 
-    $imageName = $line[10] ? trim(explode("\n", $line[10])[0]) : '';
+    $imageName = prepareImageGetPath($line[10] ? trim(explode("\n", $line[10])[0]) : '');
 
     $importLine = [
         'product_id' => $currentProductId++,
@@ -164,6 +164,51 @@ function setProductsPageLine($line, $categoryId)
     ];
 
     $importFile->addSheetRow('Products', $importLine);
+}
+
+function cleanDescription($text)
+{
+
+}
+
+function prepareImageGetPath($url)
+{
+    $path = '';
+
+    $url = trim($url);
+    if ($url) {
+        if (!$image = file_get_contents($url)) {
+            throw new \Exception('Не удалось получить изображение: ' . $url);
+        }
+
+        $pathExploded = explode('/', $url);
+        $imageName = end($pathExploded);
+
+        $taleDir = 'catalog/vent/' . $imageName[0];
+        $dirName = __DIR__ . '/images/' . $taleDir;
+        if (!is_dir($dirName)) {
+            mkdir($dirName);
+        }
+
+        for (; ;) {
+            $imagePath = $dirName . '/' . $imageName;
+            if (is_file($imagePath)) {
+                $nameExploded = explode('.', $imageName);
+                $ext = end($nameExploded);
+                $imageName = bin2hex(random_bytes(5)) . '.' . $ext;
+            } else {
+                break;
+            }
+        }
+
+        if (file_put_contents($imagePath, $image) === false) {
+            throw new \Exception('Не удалось сохранить изображение: ' . $url);
+        }
+
+        $path = $taleDir . '/' . $imageName;
+    }
+
+    return $path;
 }
 
 function formatRawDecimal($rawDecimal)

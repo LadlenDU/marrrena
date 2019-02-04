@@ -52,8 +52,9 @@ class ProductExcellGenerator
             throw new \Exception('Такой страницы нет: ' . $sheetName);
         }
 
-        foreach ($data as $columnIndex => $value) {
-            $this->sheets[$sheetName]->setCellValueByColumnAndRow($columnIndex + 1, $row, $value);
+        $columnIndex = 0;
+        foreach ($data as $value) {
+            $this->sheets[$sheetName]->setCellValueByColumnAndRow(++$columnIndex, $row, $value);
         }
     }
 

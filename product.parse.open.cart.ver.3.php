@@ -75,7 +75,7 @@ function parseElems($elems, $parent_id = 0)
         $firstCycle = true;
 
         $file = fopen('data://text/plain,' . $csvRawUtf8, 'r');
-        while (($line = fgetcsv($file, null, ';','"')) !== FALSE) {
+        while (($line = fgetcsv($file, null, ';', '"')) !== FALSE) {
             if ($firstCycle) {
                 $firstCycle = false;
                 continue;
@@ -86,6 +86,8 @@ function parseElems($elems, $parent_id = 0)
             //$importFile->addSheetRow('Products', $line);
         }
         fclose($file);
+        $importFile->saveToFile('test.xlsx');
+        exit;
 
         /*$csvLines = explode("\n", $csvRawUtf8);
 
@@ -110,6 +112,14 @@ function setProductsPageLine($line, $categoryId)
 
     $dateAdded = generateProductDateAdded();
 
+    if (!isset($line[10])) {
+        $stopper = 1;
+    }
+
+    $line = array_map('trim', $line);
+
+    $imageName = $line[10] ? trim(explode("\n", $line[10])[0]) : '';
+
     $importLine = [
         'product_id' => $currentProductId++,
         'name(en-gb)' => $line[0],
@@ -124,9 +134,9 @@ function setProductsPageLine($line, $categoryId)
         'quantity' => 1,
         'model' => '',          //TODO (из свойств)
         'manufacturer' => '',   //TODO (из свойств)
-        'image_name',
+        'image_name' => $imageName,
         'shipping' => 'yes',    // подтвердил Ventfabrika
-        'price' => $line[5],
+        'price' => formatRawDecimal($line[5]),
         'points' => 0,          //TODO: wtf?
         'date_added' => $dateAdded,
         'date_modified' => $dateAdded,
@@ -137,23 +147,28 @@ function setProductsPageLine($line, $categoryId)
         'width' => 0,           //TODO (из свойств)
         'height' => 0,          //TODO (из свойств)
         'length_unit' => 'cm',  //TODO (из свойств)
-        'status',
-        'tax_class_id',
-        'description(en-gb)',
-        'meta_title(en-gb)',
-        'meta_description(en-gb)',
-        'meta_keywords(en-gb)',
-        'stock_status_id',
-        'store_ids',
-        'layout',
-        'related_ids',
-        'tags(en-gb)',
-        'sort_order',
-        'subtract',
-        'minimum',
+        'status' => 'true',
+        'tax_class_id' => 9,    //TODO: также может быть 100 - wtf
+        'description(en-gb)' => $line[2],   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
+        'meta_title(en-gb)' => $line[0],    //TODO: обдумать правильно ли это
+        'meta_description(en-gb)' => $line[1],  //TODO: обдумать правильно ли это (это короткое описание)
+        'meta_keywords(en-gb)' => '',
+        'stock_status_id' => 5,     //TODO: wtf (известные значения - 5,6,7,8)
+        'store_ids' => 0,           //???
+        'layout' => '',
+        'related_ids' => '',        //TODO: в идеале можно реализовать но пока слишком сложно
+        'tags(en-gb)' => '',
+        'sort_order' => 0,
+        'subtract' => 'true',       //wft?
+        'minimum' => 1,             //wft?
     ];
 
     $importFile->addSheetRow('Products', $importLine);
+}
+
+function formatRawDecimal($rawDecimal)
+{
+    return str_replace([' ', ','], ['', '.'], $rawDecimal);
 }
 
 function generateProductDateAdded()

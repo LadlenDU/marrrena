@@ -177,7 +177,7 @@ class DataReader
 
     public function login($params = false)
     {
-        unlink($this->cookie);  // не оптимально но так проще
+        @unlink($this->cookie);  // не оптимально но так проще
 
         $hash = $this->loadLoginPage($params);
 

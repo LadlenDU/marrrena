@@ -124,7 +124,7 @@ function setProductAttributesPageLine($line, $productId)
         $text = $line[$i + 1];
         $importLine = [
             'product_id' => $productId,
-            'attribute_group' => '',
+            'attribute_group' => 'Общая',
             'attribute' => $attribute,
             'text(en-gb)' => $text,
         ];
@@ -171,6 +171,10 @@ function setProductsPageLine($line, $categoryId)
 
     $imageName = prepareImageGetPath($line[10] ? trim(explode("\n", $line[10])[0]) : '');
 
+    if (!$weightUnit = getProductAttribute($line, 'weight', true)) {
+        $weightUnit = 'kg';
+    }
+
     $importLine = [
         'product_id' => $currentProductId,
         'name(en-gb)' => $line[0],
@@ -181,10 +185,10 @@ function setProductsPageLine($line, $categoryId)
         'jan' => '',
         'isbn' => '',
         'mpn' => '',
-        'location' => '',               //TODO проверить (из свойств)
+        'location' => getProductAttribute($line, 'location'),
         'quantity' => 1,
         'model' => $line[18],           //TODO (из свойств) или $line[4] - артикул
-        'manufacturer' => '',           //TODO (из свойств)
+        'manufacturer' => getProductAttribute($line, 'manufacturer'),
         'image_name' => $imageName,
         'shipping' => 'yes',            // подтвердил Ventfabrika
         'price' => formatRawDecimal($line[5]),
@@ -192,8 +196,8 @@ function setProductsPageLine($line, $categoryId)
         'date_added' => $dateAdded,
         'date_modified' => $dateAdded,
         'date_available' => substr($dateAdded, 0, 10),
-        'weight' => 0,          //TODO (из свойств)
-        'weight_unit' => 'kg',  //TODO (из свойств)
+        'weight' => getProductAttribute($line, 'weight'),
+        'weight_unit' => $weightUnit,
         'length' => 0,          //TODO (из свойств)
         'width' => 0,           //TODO (из свойств)
         'height' => 0,          //TODO (из свойств)
@@ -217,6 +221,31 @@ function setProductsPageLine($line, $categoryId)
     $importFile->addSheetRow('Products', $importLine);
 
     return $currentProductId++;
+}
+
+/**
+ * Атрибуты, которые устанавливаются на странице Products
+ * и потому которые не надо устанавливать на странице ProductAttributes
+ */
+$attributesUsedInProductInfo = [
+    'location' => [
+        'местоположение',
+        'локация',
+    ],
+    'manufacturer' => [
+        'производитель',
+        'фирма производитель',
+        'страна производитель',
+        'страна производства',
+    ],
+    '' => [
+        '',
+    ],
+];
+
+function getProductAttribute($line, $name)
+{
+    return 1;
 }
 
 function cleanDescription($text)

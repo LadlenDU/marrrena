@@ -52,25 +52,35 @@ $attributesUsedInProductInfo = [
 
 $importFile = false;
 
-$firstCircle = true;
-foreach ($titleScheme as $sheetName => $headerInfo) {
-    if ($firstCircle) {
-        $importFile = new ProductExcellGenerator($sheetName);
-        $importFile->setSheetHeader($sheetName, $headerInfo);
-        $firstCircle = false;
-        continue;
+function generateImportFile()
+{
+    global $importFile, $titleScheme;
+
+    if ($importFile) {
+        unset($importFile);
     }
 
-    $importFile->addSheet($sheetName);
-    $importFile->setSheetHeader($sheetName, $headerInfo);
+    $firstCircle = true;
+    foreach ($titleScheme as $sheetName => $headerInfo) {
+        if ($firstCircle) {
+            $importFile = new ProductExcellGenerator($sheetName);
+            $importFile->setSheetHeader($sheetName, $headerInfo);
+            $firstCircle = false;
+            continue;
+        }
+
+        $importFile->addSheet($sheetName);
+        $importFile->setSheetHeader($sheetName, $headerInfo);
+    }
 }
 
-#$importFile->saveToFile('test.xlsx');
-#exit;
+generateImportFile();
 
 function parseElems($elems, $parent_id = 0)
 {
     global $importFile;
+
+    $counter = 0;
 
     foreach ($elems as $e) {
         if (!empty($e['children'])) {
@@ -110,14 +120,20 @@ function parseElems($elems, $parent_id = 0)
             setProductSEOKeywordsPageLine($line, $productId);
         }
         fclose($file);
-        $importFile->saveToFile('test.xlsx');
-        exit;
+        $importFile->saveToFile('import/' . $e['attributes']['id'] . '.xlsx');
+        //exit;
+
+        generateImportFile();
+        
+        if ($counter++ > 4) {
+            exit;
+        }
     }
 }
 
 parseElems($dirStructure['children']);
 
-$importFile->saveToFile('test.xlsx');
+//$importFile->saveToFile('test.xlsx');
 
 function setProductSEOKeywordsPageLine($line, $productId)
 {
@@ -139,15 +155,17 @@ function setProductAttributesPageLine($line, $productId)
     $lineLength = count($line);
     for ($i = 20; $i < $lineLength; $i += 2) {
         $attribute = $line[$i];
-        if (!productAttributeIsUsed($attribute)) {
-            $text = $line[$i + 1];
-            $importLine = [
-                'product_id' => $productId,
-                'attribute_group' => 'Общая',
-                'attribute' => $attribute,
-                'text(en-gb)' => $text,
-            ];
-            $importFile->addSheetRow('ProductAttributes', $importLine);
+        if ($attribute) {
+            if (!productAttributeIsUsed($attribute)) {
+                $text = $line[$i + 1];
+                $importLine = [
+                    'product_id' => $productId,
+                    'attribute_group' => 'Общая',
+                    'attribute' => $attribute,
+                    'text(en-gb)' => $text,
+                ];
+                $importFile->addSheetRow('ProductAttributes', $importLine);
+            }
         }
     }
 }

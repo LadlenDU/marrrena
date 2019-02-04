@@ -132,7 +132,7 @@ function setProductsPageLine($line, $categoryId)
         'mpn' => '',
         'location' => '',       //TODO проверить (из свойств)
         'quantity' => 1,
-        'model' => '',          //TODO (из свойств)
+        'model' => '',          //TODO (из свойств) или $line[4] - артикул
         'manufacturer' => '',   //TODO (из свойств)
         'image_name' => $imageName,
         'shipping' => 'yes',    // подтвердил Ventfabrika
@@ -149,9 +149,9 @@ function setProductsPageLine($line, $categoryId)
         'length_unit' => 'cm',  //TODO (из свойств)
         'status' => 'true',
         'tax_class_id' => 9,    //TODO: также может быть 100 - wtf
-        'description(en-gb)' => $line[2],   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
+        'description(en-gb)' => cleanDescription($line[2]),   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
         'meta_title(en-gb)' => $line[0],    //TODO: обдумать правильно ли это
-        'meta_description(en-gb)' => $line[1],  //TODO: обдумать правильно ли это (это короткое описание)
+        'meta_description(en-gb)' => cleanDescription($line[1]),  //TODO: обдумать правильно ли это (это короткое описание)
         'meta_keywords(en-gb)' => '',
         'stock_status_id' => 5,     //TODO: wtf (известные значения - 5,6,7,8)
         'store_ids' => 0,           //???
@@ -168,7 +168,10 @@ function setProductsPageLine($line, $categoryId)
 
 function cleanDescription($text)
 {
+    $text = preg_replace('/<[A-Za-z0-9 ]+>\s*описание\s*<\/[A-Za-z0-9 ]+>/ui', '', $text);
+    $text = preg_replace('/<img[^>]*>/ui', '', $text);
 
+    return $text;
 }
 
 function prepareImageGetPath($url)

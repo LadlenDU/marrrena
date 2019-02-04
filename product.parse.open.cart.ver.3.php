@@ -11,26 +11,44 @@ ini_set('display_errors', 1);
 require 'vendor/autoload.php';
 
 require_once 'ProductExcellGenerator.class.php';
-
-/*$spreadsheet = new Spreadsheet();
-//$spreadsheet->setActiveSheetIndex();
-$sheet = $spreadsheet->getActiveSheet();
-$sheet->setCellValue('A1', 'Hello World !');
-$sheet->setTitle('MyTitle');
-
-$newSheet = new \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet($spreadsheet, 'NewTitle');
-$newSheet->setCellValue('A2', '+++++++++++++');
-
-$spreadsheet->addSheet($newSheet);
-
-$writer = new Xlsx($spreadsheet);
-$writer->save('hello_world.xlsx');
-exit;*/
-
 require_once 'DataReader.class.php';
 
 $dirStructure = include 'dirStructure.php';
 $titleScheme = include 'productsColumnScheme.php';
+
+/**
+ * Атрибуты, которые устанавливаются на странице Products
+ * и потому которые не надо устанавливать на странице ProductAttributes
+ */
+$attributesUsedInProductInfo = [
+    'location' => [
+        'местоположение',
+        'локация',
+    ],
+    'manufacturer' => [
+        'производитель',
+        'фирма производитель',
+        'страна производитель',
+        'страна производства',
+    ],
+    'weight' => [
+        'вес',
+        'вес товара',
+        'вес товара (нетто)',   //TODO: обдумать верно ли
+    ],
+    'length' => [
+        'длина',
+        'длина товара',
+    ],
+    'width' => [
+        'ширина',
+        'ширина товара',
+    ],
+    'height' => [
+        'высота',
+        'высота товара',
+    ],
+];
 
 $importFile = false;
 
@@ -230,40 +248,6 @@ function setProductsPageLine($line, $categoryId)
     return $currentProductId++;
 }
 
-/**
- * Атрибуты, которые устанавливаются на странице Products
- * и потому которые не надо устанавливать на странице ProductAttributes
- */
-$attributesUsedInProductInfo = [
-    'location' => [
-        'местоположение',
-        'локация',
-    ],
-    'manufacturer' => [
-        'производитель',
-        'фирма производитель',
-        'страна производитель',
-        'страна производства',
-    ],
-    'weight' => [
-        'вес',
-        'вес товара',
-        'вес товара (нетто)',   //TODO: обдумать верно ли
-    ],
-    'length' => [
-        'длина',
-        'длина товара',
-    ],
-    'width' => [
-        'ширина',
-        'ширина товара',
-    ],
-    'height' => [
-        'высота',
-        'высота товара',
-    ],
-];
-
 function extractUnit($value)
 {
     $value = formatRawDecimal($value);
@@ -283,8 +267,9 @@ function getProductAttribute($line, $name, $getUnit = false)
     $lineLength = count($line);
     for ($i = 20; $i < $lineLength; $i += 2) {
         $nameIsFound = false;
-        foreach ($attributesUsedInProductInfo[$name] as $elem) {
-            if (in_array($line[$i], $elem)) {
+        foreach ($attributesUsedInProductInfo[$name] as $paramName) {
+            $lnName = mb_strtolower($line[$i], 'UTF-8');
+            if ($lnName === $paramName) {
                 $nameIsFound = true;
                 break;
             }
@@ -312,7 +297,9 @@ function productAttributeIsUsed($name)
 {
     global $attributesUsedInProductInfo;
 
-    foreach ($attributesUsedInProductInfo[$name] as $elem) {
+    $name = mb_strtolower($name, 'UTF-8');
+
+    foreach ($attributesUsedInProductInfo as $elem) {
         if (in_array($name, $elem)) {
             return true;
         }

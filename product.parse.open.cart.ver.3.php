@@ -8,6 +8,8 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+set_time_limit(0);
+
 require 'vendor/autoload.php';
 
 require_once 'ProductExcellGenerator.class.php';
@@ -50,15 +52,13 @@ $attributesUsedInProductInfo = [
     ],
 ];
 
-$importFile = false;
+//$importFile = false;
 
 function generateImportFile()
 {
-    global $importFile, $titleScheme;
+    global $titleScheme;
 
-    if ($importFile) {
-        unset($importFile);
-    }
+    $importFile = false;
 
     $firstCircle = true;
     foreach ($titleScheme as $sheetName => $headerInfo) {
@@ -72,15 +72,20 @@ function generateImportFile()
         $importFile->addSheet($sheetName);
         $importFile->setSheetHeader($sheetName, $headerInfo);
     }
+
+    return $importFile;
 }
 
-generateImportFile();
+//generateImportFile();
+
+$counter = 0;
+
+$dr = new DataReader();
+$dr->login();
 
 function parseElems($elems, $parent_id = 0)
 {
-    global $importFile;
-
-    $counter = 0;
+    global $dr, $counter;
 
     foreach ($elems as $e) {
         if (!empty($e['children'])) {
@@ -88,8 +93,10 @@ function parseElems($elems, $parent_id = 0)
             continue;
         }
 
-        $dr = new DataReader();
-        $dr->login();
+        $newXLSXFileName = 'import/' . $e['attributes']['id'] . '.xlsx';
+        if (is_file($newXLSXFileName)) {
+            continue;
+        }
 
         $url = 'https://x218025.storeland.ru/admin/store_goods_export/' . urlencode('cid_' . $e['attributes']['id']);
 
@@ -98,6 +105,8 @@ function parseElems($elems, $parent_id = 0)
         $csvRawUtf8 = mb_convert_encoding($csvRaw, 'utf-8', 'windows-1251');
 
         $firstCycle = true;
+
+        $importFile = generateImportFile();
 
         $file = fopen('data://text/plain,' . $csvRawUtf8, 'r');
         while (($line = fgetcsv($file, null, ';', '"')) !== FALSE) {
@@ -108,24 +117,24 @@ function parseElems($elems, $parent_id = 0)
 
             $line = array_map('trim', $line);
 
-            $productId = setProductsPageLine($line, $e['attributes']['id']);
-            setAdditionalImagesPageLine($line, $productId);
+            $productId = setProductsPageLine($importFile, $line, $e['attributes']['id']);
+            setAdditionalImagesPageLine($importFile, $line, $productId);
             //setSpecialsPageLine($line);   // скидки
             //setDiscountsPageLine($line);
             //setRewardsPageLine($line);
             //setProductOptionsPageLine($line, $productId);
             //setProductOptionsValuesPageLine($line, $productId);
-            setProductAttributesPageLine($line, $productId);
+            //setProductAttributesPageLine($importFile, $line, $productId);
             //setProductFiltersPageLine($line, $productId);
-            setProductSEOKeywordsPageLine($line, $productId);
+            setProductSEOKeywordsPageLine($importFile, $line, $productId);
         }
         fclose($file);
-        $importFile->saveToFile('import/' . $e['attributes']['id'] . '.xlsx');
+        $importFile->saveToFile($newXLSXFileName);
         //exit;
 
-        generateImportFile();
-        
-        if ($counter++ > 4) {
+        unset($importFile);
+
+        if ($counter++ > 2) {
             exit;
         }
     }
@@ -135,23 +144,20 @@ parseElems($dirStructure['children']);
 
 //$importFile->saveToFile('test.xlsx');
 
-function setProductSEOKeywordsPageLine($line, $productId)
+function setProductSEOKeywordsPageLine($importFile, $line, $productId)
 {
-    global $importFile;
-
     $importLine = [
         'product_id' => $productId,
         'store_id' => 0,                // wtf?
         'keyword(en-gb)' => $line[16],  //TODO: похоже подходит, но может быть не совсем верно
+        'keyword(ru-ru)' => $line[16],
     ];
 
     $importFile->addSheetRow('ProductSEOKeywords', $importLine);
 }
 
-function setProductAttributesPageLine($line, $productId)
+function setProductAttributesPageLine($importFile, $line, $productId)
 {
-    global $importFile;
-
     $lineLength = count($line);
     for ($i = 20; $i < $lineLength; $i += 2) {
         $attribute = $line[$i];
@@ -163,6 +169,7 @@ function setProductAttributesPageLine($line, $productId)
                     'attribute_group' => 'Общая',
                     'attribute' => $attribute,
                     'text(en-gb)' => $text,
+                    'text(ru-ru)' => $text,
                 ];
                 $importFile->addSheetRow('ProductAttributes', $importLine);
             }
@@ -170,10 +177,8 @@ function setProductAttributesPageLine($line, $productId)
     }
 }
 
-function setAdditionalImagesPageLine($line, $productId)
+function setAdditionalImagesPageLine($importFile, $line, $productId)
 {
-    global $importFile;
-
     $images = explode("\n", $line[10]);
     if (count($images) < 2) {
         return;
@@ -195,10 +200,8 @@ function setAdditionalImagesPageLine($line, $productId)
     }
 }
 
-function setProductsPageLine($line, $categoryId)
+function setProductsPageLine($importFile, $line, $categoryId)
 {
-    global $importFile;
-
     static $currentProductId = 1;
 
     $dateAdded = generateProductDateAdded();
@@ -221,6 +224,7 @@ function setProductsPageLine($line, $categoryId)
     $importLine = [
         'product_id' => $currentProductId,
         'name(en-gb)' => $line[0],
+        'name(ru-ru)' => $line[0],
         'categories' => $categoryId,
         'sku' => $line[4],  // Артикул ???
         'upc' => '',
@@ -248,14 +252,19 @@ function setProductsPageLine($line, $categoryId)
         'status' => 'true',
         'tax_class_id' => 9,    //TODO: также может быть 100 - wtf
         'description(en-gb)' => cleanDescription($line[2]),   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
+        'description(ru-ru)' => cleanDescription($line[2]),
         'meta_title(en-gb)' => ($line[13] ? $line[13] : $line[0]),    //TODO: обдумать правильно ли это
+        'meta_title(ru-ru)' => ($line[13] ? $line[13] : $line[0]),
         'meta_description(en-gb)' => cleanDescription($line[1]),  //TODO: обдумать правильно ли это (это короткое описание)
+        'meta_description(ru-ru)' => cleanDescription($line[1]),
         'meta_keywords(en-gb)' => '',
+        'meta_keywords(ru-ru)' => '',
         'stock_status_id' => 5,     //TODO: wtf (известные значения - 5,6,7,8)
         'store_ids' => 0,           //???
         'layout' => '',
         'related_ids' => '',        //TODO: в идеале можно реализовать но пока слишком сложно
         'tags(en-gb)' => '',
+        'tags(ru-ru)' => '',
         'sort_order' => 0,
         'subtract' => 'true',       //wft?
         'minimum' => 1,             //wft?
@@ -389,11 +398,3 @@ function generateProductDateAdded()
 
     return date('201' . rand(7, 8) . "-$month-$day $hour:$minute:$sec");
 }
-
-/*$fp = fopen('file_prod.csv', 'w');
-
-foreach ($csv as $fields) {
-    fputcsv($fp, $fields);
-}
-
-fclose($fp);*/

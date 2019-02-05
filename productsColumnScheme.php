@@ -7,6 +7,7 @@
 $titleScheme['Products'] = [
     'product_id',
     'name(en-gb)',
+    'name(ru-ru)',
     'categories',
     'sku',
     'upc',
@@ -34,14 +35,19 @@ $titleScheme['Products'] = [
     'status',
     'tax_class_id',
     'description(en-gb)',
+    'description(ru-ru)',
     'meta_title(en-gb)',
+    'meta_title(ru-ru)',
     'meta_description(en-gb)',
+    'meta_description(ru-ru)',
     'meta_keywords(en-gb)',
+    'meta_keywords(ru-ru)',
     'stock_status_id',
     'store_ids',
     'layout',
     'related_ids',
     'tags(en-gb)',
+    'tags(ru-ru)',
     'sort_order',
     'subtract',
     'minimum',
@@ -104,6 +110,7 @@ $titleScheme['ProductAttributes'] = [
     'attribute_group',
     'attribute',
     'text(en-gb)',
+    'text(ru-ru)',
 ];
 
 $titleScheme['ProductFilters'] = [
@@ -116,6 +123,7 @@ $titleScheme['ProductSEOKeywords'] = [
     'product_id',
     'store_id',
     'keyword(en-gb)',
+    'keyword(ru-ru)',
 ];
 
 

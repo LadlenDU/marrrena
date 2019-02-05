@@ -85,7 +85,7 @@ $dr = new DataReader();
 $dr->login();
 
 $currentProductId = 1;
-if (is_file('lastSavedProductId.id')) {
+if (is_file('nextProductId.id')) {
     $currentProductId = (int)file_get_contents('nextProductId.id');
 }
 
@@ -151,16 +151,16 @@ function parseElems($elems, $parent_id = 0)
 }
 
 parseElems($dirStructure['children']);
+echo 'Парсинг завершен';
 
-//$importFile->saveToFile('test.xlsx');
 
 function setProductSEOKeywordsPageLine($importFile, $line, $productId)
 {
     $importLine = [
         'product_id' => $productId,
         'store_id' => 0,                // wtf?
-        'keyword(en-gb)' => $line[16],  //TODO: похоже подходит, но может быть не совсем верно
-        'keyword(ru-ru)' => $line[16],
+        'keyword(en-gb)' => $line[16],  //TODO: похоже не совсем подходит, но пока такой костыль
+        'keyword(ru-ru)' => $line[0],   //TODO: реализация неверная, но хоть такой костыль
     ];
 
     $importFile->addSheetRow('ProductSEOKeywords', $importLine);
@@ -265,7 +265,7 @@ function setProductsPageLine($importFile, $line, $categoryId)
         'description(ru-ru)' => cleanDescription($line[2]),
         'meta_title(en-gb)' => ($line[13] ? $line[13] : $line[0]),    //TODO: обдумать правильно ли это
         'meta_title(ru-ru)' => ($line[13] ? $line[13] : $line[0]),
-        'meta_description(en-gb)' => cleanDescription($line[1]),  //TODO: обдумать правильно ли это (это короткое описание)
+        'meta_description(en-gb)' => cleanDescription($line[1]),    //TODO: обдумать правильно ли это (это короткое описание)
         'meta_description(ru-ru)' => cleanDescription($line[1]),
         'meta_keywords(en-gb)' => '',
         'meta_keywords(ru-ru)' => '',

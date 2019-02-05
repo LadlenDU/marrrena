@@ -9,6 +9,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 set_time_limit(0);
+ini_set('memory_limit', '990M');
 
 require 'vendor/autoload.php';
 
@@ -83,6 +84,11 @@ $counter = 0;
 $dr = new DataReader();
 $dr->login();
 
+$currentProductId = 1;
+if (is_file('lastSavedProductId.id')) {
+    $currentProductId = (int)file_get_contents('nextProductId.id');
+}
+
 function parseElems($elems, $parent_id = 0)
 {
     global $dr, $counter;
@@ -97,6 +103,8 @@ function parseElems($elems, $parent_id = 0)
         if (is_file($newXLSXFileName)) {
             continue;
         }
+
+        //$e['attributes']['id'] = '6295598';
 
         $url = 'https://x218025.storeland.ru/admin/store_goods_export/' . urlencode('cid_' . $e['attributes']['id']);
 
@@ -124,19 +132,21 @@ function parseElems($elems, $parent_id = 0)
             //setRewardsPageLine($line);
             //setProductOptionsPageLine($line, $productId);
             //setProductOptionsValuesPageLine($line, $productId);
-            //setProductAttributesPageLine($importFile, $line, $productId);
+            setProductAttributesPageLine($importFile, $line, $productId);
             //setProductFiltersPageLine($line, $productId);
             setProductSEOKeywordsPageLine($importFile, $line, $productId);
         }
         fclose($file);
         $importFile->saveToFile($newXLSXFileName);
+        file_put_contents('nextProductId.id', $GLOBALS['currentProductId']);
         //exit;
 
         unset($importFile);
+        gc_collect_cycles();
 
-        if ($counter++ > 2) {
+        /*if ($counter++ > 2) {
             exit;
-        }
+        }*/
     }
 }
 
@@ -202,7 +212,7 @@ function setAdditionalImagesPageLine($importFile, $line, $productId)
 
 function setProductsPageLine($importFile, $line, $categoryId)
 {
-    static $currentProductId = 1;
+    global $currentProductId;
 
     $dateAdded = generateProductDateAdded();
 

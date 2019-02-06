@@ -55,7 +55,12 @@ class Splitter
     {
         $sheet = $this->origSpreadsheet->getSheetByName($sheetName);
 
-        $excellGenerator = new ProductExcellGenerator($sheetName);
+        $excellGenerator = false;
+
+        $rowCounter = 0;
+        $pageCounter = 1;
+
+        $hasUnsavedRows = false;
 
         $rowIterator = $sheet->getRowIterator();
         foreach ($rowIterator as $keyRow => $row) {
@@ -67,13 +72,28 @@ class Splitter
                 $rowData[] = $cell->getValue();
             }
 
-            if ($keyRow == 1) {
+            if (!$rowCounter) {
+                if ($excellGenerator) {
+                    $excellGenerator->saveToFile($this->splittingDirName . '/' . $sheetName . "_{$pageCounter}.xlsx");
+                    unset($excellGenerator);
+                    gc_collect_cycles();
+                    ++$pageCounter;
+                }
+                $excellGenerator = new ProductExcellGenerator($sheetName);
                 $excellGenerator->setSheetHeader($sheetName, $rowData);
+                $hasUnsavedRows = false;
             } else {
                 $excellGenerator->addSheetRow($sheetName, $rowData);
+                $hasUnsavedRows = true;
+            }
+
+            if (++$rowCounter >= self::MAX_ROWS) {
+                $rowCounter = 0;
             }
         }
 
-        $excellGenerator->saveToFile($this->splittingDirName . '/' . $sheetName . '.xlsx');
+        if ($excellGenerator && $hasUnsavedRows) {
+            $excellGenerator->saveToFile($this->splittingDirName . '/' . $sheetName . "_{$pageCounter}.xlsx");
+        }
     }
 }

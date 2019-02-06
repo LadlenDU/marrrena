@@ -14,12 +14,6 @@ require_once 'ProductExcellGenerator.class.php';
 
 require 'vendor/autoload.php';
 
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWrite;
-use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-
-
 $sourceDir = 'import';
 
 $dir = new DirectoryIterator($sourceDir);
@@ -55,12 +49,16 @@ class Splitter
     {
         $sheet = $this->origSpreadsheet->getSheetByName($sheetName);
 
-        $excellGenerator = false;
+        #$excellGenerator = false;
 
         $rowCounter = 0;
-        $pageCounter = 1;
+        $pageCounter = 0;
 
-        $hasUnsavedRows = false;
+        #$hasUnsavedRows = false;
+
+        $rowHeaderData = [];
+
+        $pages = [];
 
         $rowIterator = $sheet->getRowIterator();
         foreach ($rowIterator as $keyRow => $row) {
@@ -72,28 +70,56 @@ class Splitter
                 $rowData[] = $cell->getValue();
             }
 
-            if (!$rowCounter) {
+            if ($keyRow == 1) {
+                $rowHeaderData = $rowData;
+                continue;
+            }
+
+            $pages[$pageCounter][] = $rowData;
+
+            /*if (!$rowCounter) {
                 if ($excellGenerator) {
                     $excellGenerator->saveToFile($this->splittingDirName . '/' . $sheetName . "_{$pageCounter}.xlsx");
                     unset($excellGenerator);
                     gc_collect_cycles();
                     ++$pageCounter;
+
+                    $excellGenerator = new ProductExcellGenerator($sheetName);
+                    $excellGenerator->setSheetHeader($sheetName, $rowHeaderData);
+                    $excellGenerator->addSheetRow($sheetName, $rowData);
+                    $hasUnsavedRows = true;
+                } else {
+                    // Самый первый проход
+                    $excellGenerator = new ProductExcellGenerator($sheetName);
+                    $excellGenerator->setSheetHeader($sheetName, $rowHeaderData);
+                    $hasUnsavedRows = false;
                 }
-                $excellGenerator = new ProductExcellGenerator($sheetName);
-                $excellGenerator->setSheetHeader($sheetName, $rowData);
-                $hasUnsavedRows = false;
             } else {
                 $excellGenerator->addSheetRow($sheetName, $rowData);
                 $hasUnsavedRows = true;
-            }
+            }*/
 
             if (++$rowCounter >= self::MAX_ROWS) {
                 $rowCounter = 0;
+                ++$pageCounter;
             }
         }
 
-        if ($excellGenerator && $hasUnsavedRows) {
-            $excellGenerator->saveToFile($this->splittingDirName . '/' . $sheetName . "_{$pageCounter}.xlsx");
+        foreach ($pages as $id => $pg) {
+            $excellGenerator = new ProductExcellGenerator($sheetName);
+            $excellGenerator->setSheetHeader($sheetName, $rowHeaderData);
+
+            foreach ($pg as $row) {
+                $excellGenerator->addSheetRow($sheetName, $row);
+            }
+
+            $excellGenerator->saveToFile($this->splittingDirName . '/' . $sheetName . "_{$id}.xlsx");
+            unset($excellGenerator);
+            gc_collect_cycles();
         }
+
+        /*if ($excellGenerator && $hasUnsavedRows) {
+            $excellGenerator->saveToFile($this->splittingDirName . '/' . $sheetName . "_{$pageCounter}.xlsx");
+        }*/
     }
 }

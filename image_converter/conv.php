@@ -42,9 +42,9 @@ function modImage($imageDir, $imageName)
 
     $layerLogo = ImageWorkshop::initFromPath(__DIR__ . '/logo.png');
     if ($newWidth < $newHeight) {
-        $layerLogo->resizeInPixel($newWidth / 2, null, false);
+        $layerLogo->resizeInPixel($newWidth / 2, null, true);
     } else {
-        $layerLogo->resizeInPixel(null, $newHeight / 2, false);
+        $layerLogo->resizeInPixel(null, $newHeight / 2, true);
     }
 
     $emptyLayer = ImageWorkshop::initVirginLayer($newWidth, $newHeight);
@@ -56,14 +56,16 @@ function modImage($imageDir, $imageName)
     $filename = $imageName;
     $createFolders = true;
     $backgroundColor = null;    // transparent, only for PNG (otherwise it will be white if set null)
-    $imageQuality = 90;         // useless for GIF, usefull for PNG and JPEG (0 to 100%)
+    $imageQuality = 95;         // useless for GIF, usefull for PNG and JPEG (0 to 100%)
 
     $emptyLayer->save($dirPath, $filename, $createFolders, $backgroundColor, $imageQuality);
 
-    file_put_contents('conv.log', $filename . "\n", FILE_APPEND);
-    echo $filename . "\n";
+    $savedFilePath = $dirPath . '/' .$filename . "\n";
+    file_put_contents('conv.log', $savedFilePath, FILE_APPEND);
+    echo $savedFilePath;
 }
 
+// /var/www/uid2018/data/www/vent-fabrika.ru/image/cache/catalog/vent   - vent-fabrica.ru
 $imageDir = __DIR__ . '/../images/catalog/vent';
 getDirContents($imageDir);
 

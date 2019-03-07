@@ -7,15 +7,27 @@ require(__DIR__ . '/../vendor/autoload.php');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+if (is_file('conv.log')) {
+    $alreadySaved = file_get_contents('conv.log');
+    $alreadySaved = explode("\n", $alreadySaved);
+    $alreadySaved = array_filter($alreadySaved);
+} else {
+    $alreadySaved = [];
+}
+
 function getDirContents($dir, &$results = array())
 {
+    global $alreadySaved;
+
     $files = scandir($dir);
 
     foreach ($files as $key => $value) {
         $path = realpath($dir . DIRECTORY_SEPARATOR . $value);
         if (!is_dir($path)) {
             //$results[] = $path;
-            modImage($dir, $value);
+            if (!in_array($path, $alreadySaved)) {
+                modImage($dir, $value);
+            }
         } else if ($value != "." && $value != "..") {
             getDirContents($path, $results);
             //$results[] = $path;
@@ -69,4 +81,4 @@ function modImage($imageDir, $imageName)
 $imageDir = __DIR__ . '/../images/catalog/vent';
 getDirContents($imageDir);
 
-echo 'DONE';
+echo "\n" . 'DONE' . "\n";

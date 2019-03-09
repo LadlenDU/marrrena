@@ -68,7 +68,7 @@ function modImage($imageDir, $imageName)
     $filename = $imageName;
     $createFolders = true;
     $backgroundColor = null;    // transparent, only for PNG (otherwise it will be white if set null)
-    $imageQuality = 95;         // useless for GIF, usefull for PNG and JPEG (0 to 100%)
+    $imageQuality = 87;         // useless for GIF, usefull for PNG and JPEG (0 to 100%)
 
     $emptyLayer->save($dirPath, $filename, $createFolders, $backgroundColor, $imageQuality);
 

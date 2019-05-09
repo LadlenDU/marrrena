@@ -73,7 +73,10 @@ function modImage($imageDir, $imageName)
     $emptyLayer->save($dirPath, $filename, $createFolders, $backgroundColor, $imageQuality);
 
     $savedFilePath = $dirPath . '/' .$filename . "\n";
-    file_put_contents('conv.log', $savedFilePath, FILE_APPEND);
+    $saved = file_put_contents('conv.log', $savedFilePath, FILE_APPEND);
+    if (!$saved) {
+        die('Cant save ' . $savedFilePath . "\n");
+    }
     echo $savedFilePath;
 }
 

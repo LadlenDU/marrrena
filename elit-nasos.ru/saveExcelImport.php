@@ -77,17 +77,23 @@ function generateImportFile()
 
 $counter = 0;
 
-function putElemsToExcell($elems)
+function putElemsToExcell($elems, $categoryId, $categoryName)
 {
     global $counter;
 
     $productId = (int)file_get_contents(__DIR__ . '/nextProductId.id');
 
-    $newXLSXFileName = __DIR__ . '/parsedXlsx/' . $e['attributes']['id'] . '.xlsx';
+    while (true) {
+        $newXLSXFileName = __DIR__ . "/parsedXlsx/$categoryName/{$categoryId}_" . rand(0, 9999) . '.xlsx';
+        if (!file_exists($newXLSXFileName)) {
+            break;
+        }
+    }
+
     $importFile = generateImportFile();
 
     foreach ($elems as $e) {
-        setProductsPageLine($importFile, $e, $e['categoryId'], $productId);
+        setProductsPageLine($importFile, $e, $categoryId, $productId);
         //setAdditionalImagesPageLine($importFile, $e, $productId);
         setProductAttributesPageLine($importFile, $e, $productId);
         setProductSEOKeywordsPageLine($importFile, $e, $productId);

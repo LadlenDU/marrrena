@@ -201,7 +201,7 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
             foreach ($products as $prod) {
                 $productToSave[] = $prod;
                 if (count($productToSave) > 19) {
-                    if (!putElemsToExcell($productToSave)) {
+                    if (!putElemsToExcell($productToSave, $categoryId, $categoryName)) {
                         loggWarn("Не удалось сохранить товары категории '$categoryName' ($categoryHref)");
                         exit;
                     }
@@ -214,7 +214,7 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
             }
 
             if (count($productToSave)) {
-                if (!putElemsToExcell($productToSave)) {
+                if (!putElemsToExcell($productToSave, $categoryId, $categoryName)) {
                     loggWarn("Не удалось сохранить товары категории '$categoryName' ($categoryHref)");
                     exit;
                 }
@@ -224,6 +224,12 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                 }
                 $productToSave = [];
             }
+
+            logg("<<<< Продукты сохранены: '$categoryName' ($categoryHref)");
+
+        } else {
+            loggWarn("- А где продукты?? '$categoryName' ($categoryHref)");
+            exit;
         }
 
         // Обработка пэджинатинга
@@ -242,9 +248,9 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
 {
     logg("Начинаем парсить продукт $name ($href)");
 
-    if (rand(0, 4) == 3) {
+    /*if (rand(0, 4) == 3) {
         sleep(1);
-    }
+    }*/
 
     if (in_array($href, $alreadyParsedProducts)) {
         logg("Продукт $name ($href) уже распарсен");

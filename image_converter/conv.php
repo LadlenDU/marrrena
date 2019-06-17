@@ -80,7 +80,7 @@ function modImage($imageDir, $imageName)
     echo $savedFilePath;
 }
 
-// /var/www/uid2018/data/www/vent-fabrika.ru/image/cache/catalog/vent   - vent-fabrica.ru
+// /var/www/uid2018/data/www/vent-fabrika.ru/image/cache/catalog/vent   - vent-fabrica.ru - нет, в другом месте. Это кеш, его менять нет смысла
 $imageDir = __DIR__ . '/../images/catalog/vent';
 getDirContents($imageDir);
 

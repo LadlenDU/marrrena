@@ -41,6 +41,8 @@ $categoryIds = [
     'Запасные части для насосов WILO' => 6295948,       //5457640_5452143_5452144_6295924_6295948
 ];
 
+log('Парсинг начат');
+
 $rootUrl = 'https://elit-nasos.ru';
 
 $dom = new DOMDocument;
@@ -62,11 +64,11 @@ function getAndCheckCategoryImages($xpath, $rootXPath, $rootUrl, $categoryIds)
                 ->item(0)->nodeValue);
 
             if (!isset($categoryIds[$categoryName])) {
-                die('Нет категории ' . $categoryName);
+                logExit('Нет категории ' . $categoryName);
             }
 
             if (!$imgContent = file_get_contents($rootUrl . $imageSrc)) {
-                die('Не могу получить изображение категории $imageSrc');
+                logExit('Не могу получить изображение категории $imageSrc');
             }
 
             file_put_contents(__DIR__ . '/categoryImages/' . $categoryName . '.jpg', $imgContent);
@@ -80,11 +82,11 @@ function getAndCheckCategoryImages($xpath, $rootXPath, $rootUrl, $categoryIds)
 function parseAllCategories($xpath, $rootXPath, $rootUrl, $categoryIds)
 {
     if (!$alreadyParsedCategoriesJson = file_get_contents(__DIR__ . '/alreadyParsedCategories.json')) {
-        die('Не могу получить alreadyParsedCategories.json');
+        logExit('Не могу получить alreadyParsedCategories.json');
     }
 
-    if (!$alreadyParsedCategories = json_decode($alreadyParsedCategoriesJson, true)) {
-        die('Неверный JSON формат alreadyParsedCategories.json');
+    if (($alreadyParsedCategories = json_decode($alreadyParsedCategoriesJson, true)) === false) {
+        logExit('Неверный JSON формат alreadyParsedCategories.json');
     }
 
     if ($brandsRoot = $xpath->query($rootXPath)) {
@@ -93,33 +95,90 @@ function parseAllCategories($xpath, $rootXPath, $rootUrl, $categoryIds)
                 ->item(0)->nodeValue);
 
             if (!isset($categoryIds[$categoryName])) {
-                die('Нет категории ' . $categoryName);
+                logExit('Нет категории ' . $categoryName);
             }
 
             $categoryHref = trim($xpath->query(".//a[@class='content__sub-btn']", $brandContainer)
                 ->item(0)->getAttribute('href'));
 
             if (in_array($categoryHref, $alreadyParsedCategories)) {
+                log("Категория '$categoryName' уже распарсена.");
                 continue;
             }
 
-            parseCategory($categoryHref, $xpath, $rootXPath, $rootUrl, $categoryIds);
+            parseCategory($categoryName, $categoryHref, $xpath, $rootXPath, $rootUrl, $categoryIds);
 
             $alreadyParsedCategories[] = $categoryHref;
 
             if (!file_put_contents(__DIR__ . '/alreadyParsedCategories.json', json_encode($alreadyParsedCategories))) {
-                die('Не могу сохранить в alreadyParsedCategories.json. Последняя распарсенная категория: ' . $categoryName);
+                logExit('Не могу сохранить в alreadyParsedCategories.json. Последняя распарсенная категория: ' . $categoryName);
             }
+
+            log("Добавлена новая категория $categoryName ($categoryHref)");
         }
     }
 }
 
-function parseCategory($categoryHref, $xpath, $rootXPath, $rootUrl, $categoryIds)
+function parseCategory($categoryName, $categoryHref, $xpath, $rootXPath, $rootUrl, $categoryIds)
 {
+    $categoryDir = __DIR__ . '/parsedXlsx/' . $categoryName;
+    if (!is_dir($categoryDir)) {
+        mkdir($categoryDir);
+    }
 
+    log("Начат парсинг категории $categoryName ($categoryHref)");
+
+    $dom = new DOMDocument;
+    $dom->preserveWhiteSpace = false;
+    if ($load = $dom->loadHTMLFile($rootUrl . $categoryHref)) {
+        logExit('Не грузица страница со списком товаров ' . $rootUrl . $categoryHref);
+    }
+    $xpath = new DOMXPath($dom);
+
+    $productsXPath = "//div[@id='products-content']/div[@class='name-item__wrapper']";
+
+    if ($productsRoot = $xpath->query($productsXPath)) {
+        foreach ($productsRoot as $prodContainer) {
+            if ($subProductsContainer = $xpath->query(".//div[@class='name-item__subWrap']", $prodContainer)) {
+                // Содержит подсписок
+                $subProductsList = $xpath->query(".//div[@class='name-item__sub']", $subProductsContainer);
+                foreach ($subProductsList as $subProd) {
+                    //'name-item-head'
+                }
+
+            }
+
+            $categoryName = trim($xpath->query(".//h5[@class='content__sub-text']", $brandContainer)
+                ->item(0)->nodeValue);
+
+            if (!isset($categoryIds[$categoryName])) {
+                logExit('Нет категории ' . $categoryName);
+            }
+
+            if (!$imgContent = file_get_contents($rootUrl . $imageSrc)) {
+                logExit('Не могу получить изображение категории $imageSrc');
+            }
+
+            file_put_contents(__DIR__ . '/categoryImages/' . $categoryName . '.jpg', $imgContent);
+        }
+    }
 }
 
 parseAllCategories($xpath, $rootXPath, $rootUrl, $categoryIds);
 
-echo "Парсинг закончен\n";
+function log($msg)
+{
+    echo "$msg\n";
+    $txt = date('Y-m-d H:i:s') . ' > ' . $msg . "\n";
+    file_put_contents(__DIR__ . '/log.log', $txt);
+}
+
+function logExit($msg)
+{
+    log($msg);
+    log('Парсин закончен с ошибкой!');
+    die("$msg\nПарсин закончен с ошибкой!\n");
+}
+
+log("\nПарсинг успешно закончен!\n");
 

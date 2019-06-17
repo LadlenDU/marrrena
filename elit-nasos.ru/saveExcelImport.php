@@ -83,11 +83,13 @@ function putElemsToExcell($elems, $categoryId, $categoryName)
 
     $productId = (int)file_get_contents(__DIR__ . '/nextProductId.id');
 
+    $fileCounter = 0;
     while (true) {
-        $newXLSXFileName = __DIR__ . "/parsedXlsx/$categoryName/{$categoryId}_" . rand(0, 9999) . '.xlsx';
+        $newXLSXFileName = __DIR__ . "/parsedXlsx/$categoryName/{$categoryId}_" . $fileCounter . '.xlsx';
         if (!file_exists($newXLSXFileName)) {
             break;
         }
+        ++$fileCounter;
     }
 
     $importFile = generateImportFile();

@@ -207,8 +207,8 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                     }
                     foreach ($productToSave as $pts) {
                         $alreadyParsedProducts[] = $pts['href'];
-                        file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
                     }
+                    file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
                     $productToSave = [];
                 }
             }
@@ -220,8 +220,8 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                 }
                 foreach ($productToSave as $pts) {
                     $alreadyParsedProducts[] = $pts['href'];
-                    file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
                 }
+                file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
                 $productToSave = [];
             }
 
@@ -290,7 +290,7 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
         && ($product['price'] = trim($node->nodeValue))
     ) {
         $price = (float)str_replace([' ', ','], ['', '.'], $product['price']);
-        $product['price'] = trim(number_format($price * 0.975, 2, '.', ''), '0');
+        $product['price'] = trim(number_format($price * 0.975, 0, '.', ''), '0');
     } else {
         $product['price'] = '0';
         loggWarn('Не найдена цена для ' . $rootUrl . $href);

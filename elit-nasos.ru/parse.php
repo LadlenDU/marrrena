@@ -9,6 +9,9 @@
  * насосы Wilo пункт делай в этом разделе,и в нее залей
  * <<<
  */
+
+require_once __DIR__ . '/saveExcelImport.php';
+
 //die('3');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);

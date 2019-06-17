@@ -13,6 +13,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+ignore_user_abort(true);
+set_time_limit(0);
+
 // Связь ID категорий с их названиями
 $categoryIds = [
     'Насосы повышения давления' => 6295925,     //5457640_5452143_5452144_6295924_6295925
@@ -192,10 +195,96 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
         return true;
     }
 
+    $dom = new DOMDocument;
+    $dom->preserveWhiteSpace = false;
+    if (!$load = $dom->loadHTMLFile($rootUrl . $href)) {
+        loggWarn('Не грузица страница с товаром ' . $rootUrl . $href);
+        return false;
+    }
+    $xpath = new DOMXPath($dom);
+
+    // Название
+    if ((!$node = $xpath->query("//h1[@class='content-head']")->item(0))
+        || (!$product['name'] = trim($node->nodeValue))
+    ) {
+        loggWarn('Не найдено название для ' . $rootUrl . $href . '. Товар не размещен в базе.');
+        return false;
+    }
+
+    // Артикул
+    if (($node = $xpath->query("//div[@class='sku']/span")->item(0))
+        && ($product['sku'] = trim($node->nodeValue))
+    ) {
+        $product['sku'] = substr($product['sku'], 0, 4) . rand(0, 9) . rand(0, 9) . rand(0, 9);
+    } else {
+        $product['sku'] = 608 . rand(0, 9) . rand(0, 9) . rand(0, 9) . rand(0, 9);
+    }
+
+    // Цена
+    if (($node = $xpath->query("//p[@class='product__content-cost']/span")->item(0))
+        && ($product['price'] = trim($node->nodeValue))
+    ) {
+        $price = (float)str_replace([' ', ','], ['', '.'], $product['price']);
+        $product['price'] = trim(number_format($price * 0.97, 2), '0');
+    } else {
+        $product['price'] = '0';
+        loggWarn('Не найдена цена для ' . $rootUrl . $href);
+    }
+
+    // Описание
+    $product['description'] = '';
+    if ($node = $xpath->query("//div[@class='product__content-description']/p")->item(0)) {
+        $product['description'] = trim($node->nodeValue);
+    }
+
+    // Технические характеристики
+    $product['specifications'] = [];
+    if ($nodes = $xpath->query("//div[@class='product__content-feature']//p[@class='product__content-feature_in']")) {
+        foreach ($nodes as $n) {
+            if (($nameNode = $xpath->query("//span[@class='product__content-feature_text']", $n)->item(0))
+                && ($valueNode = $xpath->query("//span[@class='product__content-feature-sell']", $n)->item(0))
+            ) {
+                $product['specifications'][] = [
+                    'name' => $nameNode->nodeValue,
+                    'value' => $valueNode->nodeValue,
+                ];
+            } else {
+                loggWarn('Неправильный формат технической характеристики для ' . $rootUrl . $href);
+            }
+        }
+    }
+    if (!$product['specifications']) {
+        loggWarn('Не найдены технические характеристики для ' . $rootUrl . $href);
+    }
+
+    // Изображение
+    $product['imageContent'] = false;
+    if ($node = $xpath->query("//div[@class='product__content-pic']//a[@class='zoom']")->item(0)) {
+        $imageHref = trim($node->getAttribute('href'));
+        if (!$product['imageContent'] = file_get_contents($imageHref)) {
+            loggWarn('Изображение не грузится для ' . $rootUrl . $href);
+        }
+    } else {
+        loggWarn('Не найдена ссылка на изображение для ' . $rootUrl . $href);
+    }
+    if ($product['imageContent']) {
+        $imageDir = __DIR__ . '/catalog/vent/wilo';
+        $parsedImageHref = parse_url($imageHref);
+        $imageName = tempnam($imageDir, "wilo_");
+        file_put_contents("$imageDir/$imageName.", $product['imageContent']);
+    }
+
     $alreadyParsedProducts[] = $href;
     file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
 
+    logg('Размещен товар ' . $rootUrl . $href);
+
     return true;
+}
+
+function loggWarn($msg)
+{
+    logg('!!!!!!!!!!!! > ' . $msg);
 }
 
 function logg($msg)

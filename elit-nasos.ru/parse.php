@@ -9,7 +9,7 @@
  * насосы Wilo пункт делай в этом разделе,и в нее залей
  * <<<
  */
-
+//die('3');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -133,7 +133,7 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
 
     $categoryId = $categoryIds[$categoryName];
 
-    logg("Начат парсинг категории '$categoryName' ($categoryHref)");
+    logg(">>>> Начат парсинг категории '$categoryName' ($categoryHref)");
 
     $alreadyParsedProductsJson = file_get_contents(__DIR__ . '/alreadyParsedProducts.json');
     if (($alreadyParsedProducts = json_decode($alreadyParsedProductsJson, true)) === false) {
@@ -156,39 +156,58 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
             $prod['name'] = trim($prod['a']->nodeValue);
             $prod['href'] = trim($prod['a']->getAttribute('href'));
 
-            logg("Проверка на подпродукты: '$prod[name] ($prod[href])'");
+            logg("Проверка на подпродукты: '$prod[name]' ($prod[href])");
             if (($subProductsContainer = $xpath->query(".//div[@class='name-item__subWrap']", $prodContainer))
                 && $subProductsContainer->length
             ) {
-                logg("Продукт '$prod[name] ($prod[href])' содержит подпродукты.");
+                logg("Продукт '$prod[name]' ($prod[href]) содержит подпродукты");
                 // Содержит подсписок
-                $subProductsList = $xpath->query(".//div[@class='name-item__sub']", $subProductsContainer->item(0));
-                foreach ($subProductsList as $subProd) {
-                    if ($subProdContent['a'] = $xpath->query(".//a[@class='name-item-head']", $subProd)) {
-                        if ($subProdContent['a_item'] = $subProdContent['a']->item(0)) {
-                            $subProdContent['href'] = trim($subProdContent['a_item']->getAttribute('href'));
-                            $subProdContent['name'] = trim($subProdContent['a_item']->nodeValue);
-                            if (in_array($subProdContent['href'], $alreadyParsedProducts)) {
-                                continue;
+                if (($subProductsList = $xpath->query(".//div[@class='name-item__sub']", $subProductsContainer->item(0)))
+                    && $subProductsList->length
+                ) {
+                    foreach ($subProductsList as $subProd) {
+                        if ($subProdContent['a'] = $xpath->query(".//a[@class='name-item-head']", $subProd)) {
+                            if ($subProdContent['a_item'] = $subProdContent['a']->item(0)) {
+                                $subProdContent['href'] = trim($subProdContent['a_item']->getAttribute('href'));
+                                $subProdContent['name'] = trim($subProdContent['a_item']->nodeValue);
+                                if (in_array($subProdContent['href'], $alreadyParsedProducts)) {
+                                    continue;
+                                }
+                                parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
+                            } else {
+                                logg("Не могу найти подпродукты для '$subProdContent[name]' ($subProdContent[href]) (позиция 2)");
                             }
-                            parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
                         } else {
-                            logg("Не могу найти подпродукты для '$subProdContent[name] ($subProdContent[href])' (позиция 2)");
+                            logg("Не могу найти подпродукты для '$prod[name]' ($prod[href]) (позиция 1)");
                         }
-                    } else {
-                        logg("Не могу найти подпродукты для '$prod[name] ($prod[href])' (позиция 1)");
                     }
+                } else {
+                    logg("Должны быть подпродукты, но они не найдены '$prod[name]' ($prod[href])");
                 }
             } else {
                 parseProduct($prod['href'], $prod['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
             }
         }
+
+        // Обработка пэджинатинга
+        if ($nextPage = $xpath->query("//div[@id='products-content']//a[@id='NextLink']")->item(0)) {
+            $nextPageUrl = trim($nextPage->getAttribute('href'));
+            logg('-- Новая страница: ' . $nextPageUrl);
+            parseCategory($categoryName, $nextPageUrl, $rootUrl);
+        }
+
+    } else {
+        logExit('Не найдены товары на странице ' . $rootUrl . $categoryHref);
     }
 }
 
 function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $categoryId)
 {
     logg("Начинаем парсить продукт $name ($href)");
+
+    if (rand(0, 4) == 3) {
+        sleep(1);
+    }
 
     if (in_array($href, $alreadyParsedProducts)) {
         logg("Продукт $name ($href) уже распарсен");
@@ -263,7 +282,7 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     if ($node = $xpath->query("//div[@class='product__content-pic']//a[@class='zoom']")->item(0)) {
         $imageHref = trim($node->getAttribute('href'));
         if (!$imageContent = file_get_contents($imageHref)) {
-            loggWarn('Изображение не грузится для ' . $rootUrl . $href);
+            logg('Изображение не грузится для ' . $rootUrl . $href);
         }
     } else {
         loggWarn('Не найдена ссылка на изображение для ' . $rootUrl . $href);
@@ -271,9 +290,15 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     if ($imageContent) {
         $parsedImageHref = pathinfo($imageHref);
         $imgExtension = $parsedImageHref['extension'] ?? 'jpg';
-        $imageName = tempnam(__DIR__ . '/images/catalog/vent/wilo', "wilo_");
-        $product['imagePath'] = "catalog/vent/wilo/$imageName.$imgExtension";
-        file_put_contents("$imageName.$imgExtension", $imageContent);
+        $imagePath = __DIR__ . '/images/catalog/vent/wilo';
+        while (true) {
+            $randFilename = uniqid('', true) . ".$imgExtension";
+            if (!file_exists("$imagePath/$randFilename")) {
+                break;
+            }
+        }
+        $product['imagePath'] = "catalog/vent/wilo/$randFilename";
+        file_put_contents("$imagePath/$randFilename", $imageContent);
     }
 
     gc_collect_cycles();

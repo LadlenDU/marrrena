@@ -128,6 +128,11 @@ function parseCategory($categoryName, $categoryHref, $xpath, $rootXPath, $rootUr
 
     log("Начат парсинг категории $categoryName ($categoryHref)");
 
+    $alreadyParsedProductsJson = file_get_contents(__DIR__ . '/alreadyParsedProducts.json');
+    if (!$alreadyParsedProducts = json_decode($alreadyParsedProductsJson, true)) {
+        logExit('Неверный формат файла alreadyParsedProducts.json (или ошибка чтения).');
+    }
+
     $dom = new DOMDocument;
     $dom->preserveWhiteSpace = false;
     if ($load = $dom->loadHTMLFile($rootUrl . $categoryHref)) {
@@ -139,32 +144,53 @@ function parseCategory($categoryName, $categoryHref, $xpath, $rootXPath, $rootUr
 
     if ($productsRoot = $xpath->query($productsXPath)) {
         foreach ($productsRoot as $prodContainer) {
+            // Найдем имя
+            $prod['a'] = $xpath->query("./div[@class='name-item-desc']/a[@class='name-item_head']", $prodContainer)->item(0);
+            $prod['name'] = trim($prod['a']->nodeValue);
+            $prod['href'] = $prod['a']->getAttribute('href');
+
+            log("Проверка на подпродукты: '$prod[name] ($prod[href])'");
             if ($subProductsContainer = $xpath->query(".//div[@class='name-item__subWrap']", $prodContainer)) {
+                log("Продукт '$prod[name] ($prod[href])' содержит подпродукты.");
                 // Содержит подсписок
                 $subProductsList = $xpath->query(".//div[@class='name-item__sub']", $subProductsContainer);
                 foreach ($subProductsList as $subProd) {
-                    //'name-item-head'
+                    if ($subProd['a'] = $xpath->query(".//a[@class='name-item-head']", $subProd)) {
+                        if ($subProd['a_item'] = $subProd['a']->item(0)) {
+                            $subProd['href'] = $subProd['a_item']->getAttribute('href');
+                            $subProd['name'] = $subProd['a_item']->nodeValue;
+                            if (in_array($subProd['href'], $alreadyParsedProducts)) {
+                                continue;
+                            }
+                            parseProduct($subProd['href'], $subProd['name'], $alreadyParsedProducts);
+                        } else {
+                            log("Не могу найти подпродукты для '$prod[name] ($prod[href])' (позиция 2)");
+                        }
+                    } else {
+                        log("Не могу найти подпродукты для '$prod[name] ($prod[href])' (позиция 1)");
+                    }
                 }
-
+            } else {
+                parseProduct($prod['href'], $prod['name'], $alreadyParsedProducts);
             }
-
-            $categoryName = trim($xpath->query(".//h5[@class='content__sub-text']", $brandContainer)
-                ->item(0)->nodeValue);
-
-            if (!isset($categoryIds[$categoryName])) {
-                logExit('Нет категории ' . $categoryName);
-            }
-
-            if (!$imgContent = file_get_contents($rootUrl . $imageSrc)) {
-                logExit('Не могу получить изображение категории $imageSrc');
-            }
-
-            file_put_contents(__DIR__ . '/categoryImages/' . $categoryName . '.jpg', $imgContent);
         }
     }
 }
 
-parseAllCategories($xpath, $rootXPath, $rootUrl, $categoryIds);
+function parseProduct($href, $name, &$alreadyParsedProducts)
+{
+    log("Начинаем парсить продукт $name ($href)");
+
+    if (in_array($href, $alreadyParsedProducts)) {
+        log("Продукт $name ($href) уже распарсен");
+        return true;
+    }
+
+    $alreadyParsedProducts[] = $href;
+    file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
+
+    return true;
+}
 
 function log($msg)
 {
@@ -179,6 +205,8 @@ function logExit($msg)
     log('Парсин закончен с ошибкой!');
     die("$msg\nПарсин закончен с ошибкой!\n");
 }
+
+parseAllCategories($xpath, $rootXPath, $rootUrl, $categoryIds);
 
 log("\nПарсинг успешно закончен!\n");
 

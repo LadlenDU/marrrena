@@ -77,35 +77,36 @@ function generateImportFile()
 
 $counter = 0;
 
-$currentProductId = 1;
-if (is_file('nextProductId.id')) {
-    $currentProductId = (int)file_get_contents('nextProductId.id');
-}
-
 function putElemsToExcell($elems)
 {
     global $counter;
+
+    $productId = (int)file_get_contents(__DIR__ . '/nextProductId.id');
 
     foreach ($elems as $e) {
 
         $newXLSXFileName = __DIR__ . '/parsedXlsx/' . $e['attributes']['id'] . '.xlsx';
         $importFile = generateImportFile();
 
-        $productId = setProductsPageLine($importFile, $e, $e['categoryId']);
-        setAdditionalImagesPageLine($importFile, $line, $productId);
+        setProductsPageLine($importFile, $e, $e['categoryId'], $productId);
+        //setAdditionalImagesPageLine($importFile, $e, $productId);
         setProductAttributesPageLine($importFile, $e, $productId);
         setProductSEOKeywordsPageLine($importFile, $e, $productId);
 
         $importFile->saveToFile($newXLSXFileName);
-        file_put_contents(__DIR__ . '/nextProductId.id', $GLOBALS['currentProductId']);
-
-        unset($importFile);
-        gc_collect_cycles();
+        ++$productId;
 
         /*if ($counter++ > 2) {
             exit;
         }*/
     }
+
+    unset($importFile);
+    gc_collect_cycles();
+
+    file_put_contents(__DIR__ . '/nextProductId.id', $productId);
+
+    return putElemsToExcell($elems);
 }
 
 function setProductSEOKeywordsPageLine($importFile, $line, $productId)
@@ -136,7 +137,7 @@ function setProductAttributesPageLine($importFile, $line, $productId)
     }
 }
 
-function setAdditionalImagesPageLine($importFile, $line, $productId)
+/*function setAdditionalImagesPageLine($importFile, $line, $productId)
 {
     $images = explode("\n", $line[10]);
     if (count($images) < 2) {
@@ -157,12 +158,10 @@ function setAdditionalImagesPageLine($importFile, $line, $productId)
 
         $importFile->addSheetRow('AdditionalImages', $importLine);
     }
-}
+}*/
 
-function setProductsPageLine($importFile, $line, $categoryId)
+function setProductsPageLine($importFile, $line, $categoryId, $productId)
 {
-    global $currentProductId;
-
     $dateAdded = generateProductDateAdded();
 
     if (!isset($line[10])) {
@@ -181,7 +180,7 @@ function setProductsPageLine($importFile, $line, $categoryId)
 
 
     $importLine = [
-        'product_id' => $currentProductId,
+        'product_id' => $productId,
         'name(en-gb)' => $line[0],
         'name(ru-ru)' => $line[0],
         'categories' => $categoryId,
@@ -230,8 +229,6 @@ function setProductsPageLine($importFile, $line, $categoryId)
     ];
 
     $importFile->addSheetRow('Products', $importLine);
-
-    return $currentProductId++;
 }
 
 function extractUnit($value)

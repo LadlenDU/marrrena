@@ -143,6 +143,8 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
         logExit('Неверный формат файла alreadyParsedProducts.json (или ошибка чтения).');
     }
 
+    $products = [];
+
     $dom = new DOMDocument;
     $dom->preserveWhiteSpace = false;
     if (!$load = $dom->loadHTMLFile($rootUrl . $categoryHref)) {
@@ -176,7 +178,7 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                                 if (in_array($subProdContent['href'], $alreadyParsedProducts)) {
                                     continue;
                                 }
-                                parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
+                                $products[] = parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
                             } else {
                                 logg("Не могу найти подпродукты для '$subProdContent[name]' ($subProdContent[href]) (позиция 2)");
                             }
@@ -188,8 +190,15 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                     logg("Должны быть подпродукты, но они не найдены '$prod[name]' ($prod[href])");
                 }
             } else {
-                parseProduct($prod['href'], $prod['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
+                $products[] = parseProduct($prod['href'], $prod['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
             }
+        }
+
+        logg("- Сохраняем в Excel '$categoryName' ($categoryHref)");
+
+        if ($products) {
+            //$alreadyParsedProducts[] = $href;
+            //file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
         }
 
         // Обработка пэджинатинга
@@ -224,6 +233,9 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
         return false;
     }
     $xpath = new DOMXPath($dom);
+
+    $product['categoryId'] = $categoryId;
+    $product['href'] = $href;
 
     // Название
     if ((!$node = $xpath->query("//h1[contains(@class,'content-head')]")->item(0))
@@ -306,12 +318,12 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
 
     gc_collect_cycles();
 
-    $alreadyParsedProducts[] = $href;
-    file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
+    //$alreadyParsedProducts[] = $href;
+    //file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
 
-    logg('Размещен товар ' . $rootUrl . $href);
+    logg('Подготовлен (распарсен) товар ' . $rootUrl . $href);
 
-    return true;
+    return $product;
 }
 
 function loggWarn($msg)

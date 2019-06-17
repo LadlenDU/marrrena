@@ -122,8 +122,8 @@ function setProductSEOKeywordsPageLine($importFile, $line, $productId)
     $importLine = [
         'product_id' => $productId,
         'store_id' => 0,                // wtf?
-        'keyword(en-gb)' => $line['name'],      //TODO: похоже не совсем подходит, но пока такой костыль
-        'keyword(ru-ru)' => $line['name'],      //TODO: реализация неверная, но хоть такой костыль
+        'keyword(en-gb)' => $line['name'] . ' EN',      //TODO: похоже не совсем подходит, но пока такой костыль
+        'keyword(ru-ru)' => $line['name'],              //TODO: реализация неверная, но хоть такой костыль
     ];
 
     $importFile->addSheetRow('ProductSEOKeywords', $importLine);

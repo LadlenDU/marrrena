@@ -8,6 +8,14 @@
  * .сюдаhttp://www.vent-fabrika.ru/index.php?route=product/category&path=5457640_5452143_5452144
  * насосы Wilo пункт делай в этом разделе,и в нее залей
  * <<<
+ *
+ * select max(product_id) from oc_product;
+    +-----------------+
+    | max(product_id) |
+    +-----------------+
+    |           20343 |
+    +-----------------+
+    1 row in set (0.01 sec)
  */
 
 require_once __DIR__ . '/saveExcelImport.php';
@@ -178,7 +186,7 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                                 if (in_array($subProdContent['href'], $alreadyParsedProducts)) {
                                     continue;
                                 }
-                                $products[] = parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
+                                $products[] = parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId, $prod['href']);
                             } else {
                                 logg("Не могу найти подпродукты для '$subProdContent[name]' ($subProdContent[href]) (позиция 2)");
                             }
@@ -244,13 +252,24 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
     }
 }
 
-function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $categoryId)
+/**
+ * @param $href
+ * @param $name
+ * @param $alreadyParsedProducts
+ * @param $rootUrl
+ * @param $categoryId
+ * @param bool|string $parentSubcategHref если строка, значит изображение будет одинаковым (скорее всего, пока сделаем такую реализацию) для всех продуктов с таким же $parentSubcategHref
+ * @return mixed
+ */
+function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $categoryId, $parentSubcategHref = false)
 {
+    static $subcategImageClusters = [];
+
     logg("Начинаем парсить продукт $name ($href)");
 
-    /*if (rand(0, 4) == 3) {
+    if (rand(0, 4) == 3) {
         sleep(1);
-    }*/
+    }
 
     if (in_array($href, $alreadyParsedProducts)) {
         logg("Продукт $name ($href) уже распарсен");
@@ -323,28 +342,49 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     }
 
     // Изображение
-    $product['imagePath'] = '';
-    $imageContent = false;
-    if ($node = $xpath->query("//div[@class='product__content-pic']//a[@class='zoom']")->item(0)) {
-        $imageHref = trim($node->getAttribute('href'));
-        if (!$imageContent = file_get_contents($imageHref)) {
-            logg('Изображение не грузится для ' . $rootUrl . $href);
+    $ifToGetImagePath = true;
+    if ($parentSubcategHref) {
+        if ($subcategImageClusters[$parentSubcategHref]) {
+            $product['imagePath'] = $subcategImageClusters[$parentSubcategHref];
+            $ifToGetImagePath = false;
         }
-    } else {
-        loggWarn('Не найдена ссылка на изображение для ' . $rootUrl . $href);
     }
-    if ($imageContent) {
-        $parsedImageHref = pathinfo($imageHref);
-        $imgExtension = $parsedImageHref['extension'] ?? 'jpg';
-        $imagePath = __DIR__ . '/images/catalog/vent/wilo';
-        while (true) {
-            $randFilename = uniqid('', true) . ".$imgExtension";
-            if (!file_exists("$imagePath/$randFilename")) {
-                break;
+    if ($ifToGetImagePath) {
+        $product['imagePath'] = '';
+        $imageContent = false;
+        if ($node = $xpath->query("//div[@class='product__content-pic']//a[@class='zoom']")->item(0)) {
+            $imageHref = trim($node->getAttribute('href'));
+            if (!$imageContent = file_get_contents($imageHref)) {
+                logg('Изображение не грузится для ' . $rootUrl . $href);
             }
+        } else {
+            loggWarn('Не найдена ссылка на изображение для ' . $rootUrl . $href);
         }
-        $product['imagePath'] = "catalog/vent/wilo/$randFilename";
-        file_put_contents("$imagePath/$randFilename", $imageContent);
+        if ($imageContent) {
+            $parsedImageHref = pathinfo($imageHref);
+            if (empty($parsedImageHref['extension'])
+                || (strtolower($parsedImageHref['extension']) != 'jpg'
+                    && strtolower($parsedImageHref['extension']) != 'jpeg'
+                    && strtolower($parsedImageHref['extension']) != 'gif'
+                    && strtolower($parsedImageHref['extension']) != 'png')
+            ) {
+                loggWarn('Непонятка с расширением изображения. URL: ' . $rootUrl . $href . '; $parsedImageHref: ' . json_encode($parsedImageHref));
+            }
+            $imgExtension = empty($parsedImageHref['extension']) ? 'jpg' : $parsedImageHref['extension'];
+            $imagePath = __DIR__ . '/images/catalog/vent/wilo';
+            while (true) {
+                $randFilename = uniqid('', true) . ".$imgExtension";
+                if (!file_exists("$imagePath/$randFilename")) {
+                    break;
+                }
+            }
+            $product['imagePath'] = "catalog/vent/wilo/$randFilename";
+            file_put_contents("$imagePath/$randFilename", $imageContent);
+        }
+
+        if ($parentSubcategHref) {
+            $subcategImageClusters[$parentSubcategHref] = $product['imagePath'];
+        }
     }
 
     gc_collect_cycles();
@@ -364,7 +404,7 @@ function loggWarn($msg)
 
 function logg($msg)
 {
-    echo "$msg\n";
+    //echo "$msg\n";
     $txt = date('Y-m-d H:i:s') . ' > ' . $msg . "\n";
     file_put_contents(__DIR__ . '/log.log', $txt, FILE_APPEND);
 }

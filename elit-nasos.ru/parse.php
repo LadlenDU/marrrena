@@ -204,7 +204,7 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     $xpath = new DOMXPath($dom);
 
     // Название
-    if ((!$node = $xpath->query("//h1[@class='content-head']")->item(0))
+    if ((!$node = $xpath->query("//h1[contains(@class,'content-head')]")->item(0))
         || (!$product['name'] = trim($node->nodeValue))
     ) {
         loggWarn('Не найдено название для ' . $rootUrl . $href . '. Товар не размещен в базе.');
@@ -221,11 +221,11 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     }
 
     // Цена
-    if (($node = $xpath->query("//p[@class='product__content-cost']/span")->item(0))
+    if (($node = $xpath->query("//p[contains(@class,'product__content-cost')]/span")->item(0))
         && ($product['price'] = trim($node->nodeValue))
     ) {
         $price = (float)str_replace([' ', ','], ['', '.'], $product['price']);
-        $product['price'] = trim(number_format($price * 0.97, 2), '0');
+        $product['price'] = trim(number_format($price * 0.975, 2, '.', ''), '0');
     } else {
         $product['price'] = '0';
         loggWarn('Не найдена цена для ' . $rootUrl . $href);
@@ -241,8 +241,8 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     $product['specifications'] = [];
     if ($nodes = $xpath->query("//div[@class='product__content-feature']//p[@class='product__content-feature_in']")) {
         foreach ($nodes as $n) {
-            if (($nameNode = $xpath->query("//span[@class='product__content-feature_text']", $n)->item(0))
-                && ($valueNode = $xpath->query("//span[@class='product__content-feature-sell']", $n)->item(0))
+            if (($nameNode = $xpath->query(".//span[@class='product__content-feature_text']", $n)->item(0)) !== null
+                && ($valueNode = $xpath->query(".//span[@class='product__content-feature-sell']", $n)->item(0)) !== null
             ) {
                 $product['specifications'][] = [
                     'name' => $nameNode->nodeValue,
@@ -258,21 +258,25 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     }
 
     // Изображение
-    $product['imageContent'] = false;
+    $product['imagePath'] = '';
+    $imageContent = false;
     if ($node = $xpath->query("//div[@class='product__content-pic']//a[@class='zoom']")->item(0)) {
         $imageHref = trim($node->getAttribute('href'));
-        if (!$product['imageContent'] = file_get_contents($imageHref)) {
+        if (!$imageContent = file_get_contents($imageHref)) {
             loggWarn('Изображение не грузится для ' . $rootUrl . $href);
         }
     } else {
         loggWarn('Не найдена ссылка на изображение для ' . $rootUrl . $href);
     }
-    if ($product['imageContent']) {
-        $imageDir = __DIR__ . '/catalog/vent/wilo';
-        $parsedImageHref = parse_url($imageHref);
-        $imageName = tempnam($imageDir, "wilo_");
-        file_put_contents("$imageDir/$imageName.", $product['imageContent']);
+    if ($imageContent) {
+        $parsedImageHref = pathinfo($imageHref);
+        $imgExtension = $parsedImageHref['extension'] ?? 'jpg';
+        $imageName = tempnam(__DIR__ . '/images/catalog/vent/wilo', "wilo_");
+        $product['imagePath'] = "catalog/vent/wilo/$imageName.$imgExtension";
+        file_put_contents("$imageName.$imgExtension", $imageContent);
     }
+
+    gc_collect_cycles();
 
     $alreadyParsedProducts[] = $href;
     file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));

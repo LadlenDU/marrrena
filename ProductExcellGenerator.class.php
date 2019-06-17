@@ -60,7 +60,16 @@ class ProductExcellGenerator
 
     public function saveToFile($fileName)
     {
-        $writer = new Xlsx($this->spreadsheet);
-        $writer->save($fileName);
+        $success = false;
+
+        try {
+            $writer = new Xlsx($this->spreadsheet);
+            $writer->save($fileName);
+            $success = true;
+        } catch (\Exception $e) {
+            echo 'Не удалось сохранить Excel файд. Ошибка: ' . $e->getMessage();
+        }
+
+        return $success;
     }
 }

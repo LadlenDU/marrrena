@@ -83,17 +83,15 @@ function putElemsToExcell($elems)
 
     $productId = (int)file_get_contents(__DIR__ . '/nextProductId.id');
 
+    $newXLSXFileName = __DIR__ . '/parsedXlsx/' . $e['attributes']['id'] . '.xlsx';
+    $importFile = generateImportFile();
+
     foreach ($elems as $e) {
-
-        $newXLSXFileName = __DIR__ . '/parsedXlsx/' . $e['attributes']['id'] . '.xlsx';
-        $importFile = generateImportFile();
-
         setProductsPageLine($importFile, $e, $e['categoryId'], $productId);
         //setAdditionalImagesPageLine($importFile, $e, $productId);
         setProductAttributesPageLine($importFile, $e, $productId);
         setProductSEOKeywordsPageLine($importFile, $e, $productId);
 
-        $importFile->saveToFile($newXLSXFileName);
         ++$productId;
 
         /*if ($counter++ > 2) {
@@ -101,12 +99,14 @@ function putElemsToExcell($elems)
         }*/
     }
 
+    $saveResult = $importFile->saveToFile($newXLSXFileName);
+
     unset($importFile);
     gc_collect_cycles();
 
     file_put_contents(__DIR__ . '/nextProductId.id', $productId);
 
-    return putElemsToExcell($elems);
+    return $saveResult;
 }
 
 function setProductSEOKeywordsPageLine($importFile, $line, $productId)
@@ -164,12 +164,6 @@ function setProductsPageLine($importFile, $line, $categoryId, $productId)
 {
     $dateAdded = generateProductDateAdded();
 
-    if (!isset($line[10])) {
-        $stopper = 1;
-    }
-
-    $imageName = prepareImageGetPath($line[10] ? trim(explode("\n", $line[10])[0]) : '');
-
     if (!$weightUnit = getProductAttribute($line, 'weight', true)) {
         $weightUnit = 'kg';
     }
@@ -178,13 +172,12 @@ function setProductsPageLine($importFile, $line, $categoryId, $productId)
         $lengthUnit = 'cm';
     }
 
-
     $importLine = [
         'product_id' => $productId,
-        'name(en-gb)' => $line[0],
-        'name(ru-ru)' => $line[0],
+        'name(en-gb)' => $line['name'],
+        'name(ru-ru)' => $line['name'],
         'categories' => $categoryId,
-        'sku' => $line[4],  // Артикул ???
+        'sku' => $line['sku'],  // Артикул
         'upc' => '',
         'ean' => '',
         'jan' => '',
@@ -192,11 +185,11 @@ function setProductsPageLine($importFile, $line, $categoryId, $productId)
         'mpn' => '',
         'location' => getProductAttribute($line, 'location'),
         'quantity' => 1,
-        'model' => $line[18],           //TODO (из свойств) или $line[4] - артикул
+        'model' => '',      //$line['sku'],           //TODO (из свойств) или артикул
         'manufacturer' => getProductAttribute($line, 'manufacturer'),
-        'image_name' => $imageName,
+        'image_name' => $line['imagePath'],
         'shipping' => 'yes',            // подтвердил Ventfabrika
-        'price' => formatRawDecimal($line[5]),
+        'price' => $line['price'],
         'points' => 0,          //TODO: wtf?
         'date_added' => $dateAdded,
         'date_modified' => $dateAdded,
@@ -209,12 +202,12 @@ function setProductsPageLine($importFile, $line, $categoryId, $productId)
         'length_unit' => $lengthUnit,
         'status' => 'true',
         'tax_class_id' => 9,    //TODO: также может быть 100 - wtf
-        'description(en-gb)' => cleanDescription($line[2]),   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
-        'description(ru-ru)' => cleanDescription($line[2]),
-        'meta_title(en-gb)' => ($line[13] ? $line[13] : $line[0]),    //TODO: обдумать правильно ли это
-        'meta_title(ru-ru)' => ($line[13] ? $line[13] : $line[0]),
-        'meta_description(en-gb)' => cleanDescription($line[1]),    //TODO: обдумать правильно ли это (это короткое описание)
-        'meta_description(ru-ru)' => cleanDescription($line[1]),
+        'description(en-gb)' => cleanDescription($line['description']),   // полное описание товара (подумать куда девать короткое($line[1]) если надо)
+        'description(ru-ru)' => cleanDescription($line['description']),
+        'meta_title(en-gb)' => $line['name'],    //TODO: обдумать правильно ли это
+        'meta_title(ru-ru)' => $line['name'],
+        'meta_description(en-gb)' => cleanDescription($line['description']),    //TODO: обдумать правильно ли это (это короткое описание)
+        'meta_description(ru-ru)' => cleanDescription($line['description']),
         'meta_keywords(en-gb)' => '',
         'meta_keywords(ru-ru)' => '',
         'stock_status_id' => 5,     //TODO: wtf (известные значения - 5,6,7,8)

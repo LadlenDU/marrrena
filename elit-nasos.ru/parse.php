@@ -197,8 +197,33 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
         logg("- Сохраняем в Excel '$categoryName' ($categoryHref)");
 
         if ($products) {
-            //$alreadyParsedProducts[] = $href;
-            //file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
+            $productToSave = [];
+            foreach ($products as $prod) {
+                $productToSave[] = $prod;
+                if (count($productToSave) > 19) {
+                    if (!putElemsToExcell($productToSave)) {
+                        loggWarn("Не удалось сохранить товары категории '$categoryName' ($categoryHref)");
+                        exit;
+                    }
+                    foreach ($productToSave as $pts) {
+                        $alreadyParsedProducts[] = $pts['href'];
+                        file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
+                    }
+                    $productToSave = [];
+                }
+            }
+
+            if (count($productToSave)) {
+                if (!putElemsToExcell($productToSave)) {
+                    loggWarn("Не удалось сохранить товары категории '$categoryName' ($categoryHref)");
+                    exit;
+                }
+                foreach ($productToSave as $pts) {
+                    $alreadyParsedProducts[] = $pts['href'];
+                    file_put_contents(__DIR__ . '/alreadyParsedProducts.json', json_encode($alreadyParsedProducts));
+                }
+                $productToSave = [];
+            }
         }
 
         // Обработка пэджинатинга

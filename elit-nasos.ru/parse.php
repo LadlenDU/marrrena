@@ -16,12 +16,14 @@
     |           20343 |
     +-----------------+
     1 row in set (0.01 sec)
+ *
+ * Остановился: 6295926_3.xlsx и предыдущие - импортированы (18.Jun.2019)
  */
 
 require_once __DIR__ . '/saveExcelImport.php';
 
 //die('3');
-error_reporting(E_ALL);
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 ini_set('display_errors', 1);
 
 ignore_user_abort(true);
@@ -183,10 +185,15 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                             if ($subProdContent['a_item'] = $subProdContent['a']->item(0)) {
                                 $subProdContent['href'] = trim($subProdContent['a_item']->getAttribute('href'));
                                 $subProdContent['name'] = trim($subProdContent['a_item']->nodeValue);
-                                if (in_array($subProdContent['href'], $alreadyParsedProducts)) {
+                                /* Проверка вынесена в parseProduct()
+                                 * if (in_array($subProdContent['href'], $alreadyParsedProducts)) {
+                                    logg("Подпродукт '$subProdContent[name]' ($subProdContent[href]) уже распарсен");
                                     continue;
+                                }*/
+                                $parseResult = parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId, $prod['href']);
+                                if (is_array($parseResult)) {
+                                    $products[] = $parseResult;
                                 }
-                                $products[] = parseProduct($subProdContent['href'], $subProdContent['name'], $alreadyParsedProducts, $rootUrl, $categoryId, $prod['href']);
                             } else {
                                 logg("Не могу найти подпродукты для '$subProdContent[name]' ($subProdContent[href]) (позиция 2)");
                             }
@@ -198,7 +205,10 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
                     logg("Должны быть подпродукты, но они не найдены '$prod[name]' ($prod[href])");
                 }
             } else {
-                $products[] = parseProduct($prod['href'], $prod['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
+                $parseResult = parseProduct($prod['href'], $prod['name'], $alreadyParsedProducts, $rootUrl, $categoryId);
+                if (is_array($parseResult)) {
+                    $products[] = $parseResult;
+                }
             }
         }
 
@@ -237,7 +247,8 @@ function parseCategory($categoryName, $categoryHref, $rootUrl)
 
         } else {
             loggWarn("- А где продукты?? '$categoryName' ($categoryHref)");
-            exit;
+            // Продуктов может и не быть (напр. https://elit-nasos.ru/catalog/kolodeznye-nasosy)
+            //exit;
         }
 
         // Обработка пэджинатинга
@@ -344,7 +355,7 @@ function parseProduct($href, $name, &$alreadyParsedProducts, $rootUrl, $category
     // Изображение
     $ifToGetImagePath = true;
     if ($parentSubcategHref) {
-        if ($subcategImageClusters[$parentSubcategHref]) {
+        if (!empty($subcategImageClusters[$parentSubcategHref])) {
             $product['imagePath'] = $subcategImageClusters[$parentSubcategHref];
             $ifToGetImagePath = false;
         }
